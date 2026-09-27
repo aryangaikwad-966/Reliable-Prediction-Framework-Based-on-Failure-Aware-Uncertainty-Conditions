@@ -1,0 +1,47 @@
+{
+  "name": "reliable-prediction-framework",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "tsx watch server/src/index.ts",
+    "dev:client": "vite --host 0.0.0.0 --port 5000",
+    "dev:ml": "python3 -m uvicorn app.main:app --app-dir ml-service --host 0.0.0.0 --port 8000",
+    "build": "tsc -p tsconfig.json && vite build",
+    "start": "tsx server/src/index.ts",
+    "test": "vitest run",
+    "test:integration": "vitest run server/src/integration.test.ts",
+    "test:all": "vitest run && cd ml-service && python3 -m pytest test_core.py -q && cd ..",
+    "db:setup": "psql \"$DATABASE_URL\" -f db/schema.sql",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.66.8",
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "lucide-react": "^0.468.0",
+    "pg": "^8.13.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.1.1",
+    "recharts": "^3.10.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.5",
+    "@types/pg": "^8.11.10",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vitest": "^5.0.2"
+  }
+}
