@@ -16,3 +16,4 @@ data/*.xlsx
 *.log
 .DS_Store
 attached_assets/
+*.csv
