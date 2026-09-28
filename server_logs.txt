@@ -1,0 +1,18 @@
+
+> reliable-prediction-framework@1.0.0 dev
+> concurrently -k "npm:dev:server" "npm:dev:client"
+
+[dev:client] 
+[dev:client] > reliable-prediction-framework@1.0.0 dev:client
+[dev:client] > vite --host 0.0.0.0 --port 5173
+[dev:client] 
+[dev:server] 
+[dev:server] > reliable-prediction-framework@1.0.0 dev:server
+[dev:server] > tsx watch server/src/index.ts
+[dev:server] 
+[dev:client] 
+[dev:client]   VITE v6.4.3  ready in 72 ms
+[dev:client] 
+[dev:client]   ➜  Local:   http://localhost:5173/
+[dev:client]   ➜  Network: http://192.168.0.102:5173/
+[dev:server] Node API listening on 0.0.0.0:3001 (demo mode)

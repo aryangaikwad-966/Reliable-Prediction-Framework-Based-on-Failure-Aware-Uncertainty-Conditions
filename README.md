@@ -95,19 +95,6 @@ npm run dev:ml
 - Backend API: http://localhost:3001
 - ML Service: http://localhost:8000
 
-## Run in Replit
-
-The default Replit workflow is:
-
-```bash
-npm install
-npm run dev
-```
-
-It serves the Vite UI on port `5000` and the Express API on port `3001`. Without a database or trained model, the UI runs in clearly marked **DEMO DATA** mode. This is not a claim about model performance.
-
-Copy `.env.example` to `.env` for local configuration. `SESSION_SECRET` is not required by the current unauthenticated research MVP and should remain in Replit Secrets if authentication is added later.
-
 ## Run Locally
 
 ### Prerequisites
