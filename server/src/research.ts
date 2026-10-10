@@ -69,21 +69,38 @@ export function calculateRisk(signals: ReliabilitySignals) {
   return Number(clamp(risk).toFixed(10));
 }
 
+/**
+ * Signal-specific decision rules.  Each entry mirrors the thresholds and
+ * reason codes used by the FastAPI engine (ml-service/app/core.py
+ * `selective_decision`).  Both services MUST use the same constants.
+ */
+const SIGNAL_RULES: Array<{ signal: keyof ReliabilitySignals; minimum: number; reason: string; code: string }> = [
+  { signal: "modelUncertainty",      minimum: 0.60, reason: "Model uncertainty is elevated",                         code: "MODEL_UNCERTAINTY_ELEVATED" },
+  { signal: "historicalFailureRisk",  minimum: 0.50, reason: "Similar historical cases showed high failure rates",    code: "HISTORICAL_FAILURE_RISK_ELEVATED" },
+  { signal: "noveltyScore",           minimum: 0.65, reason: "Current context is unusual relative to training data",  code: "NOVELTY_SCORE_ELEVATED" },
+  { signal: "driftScore",             minimum: 0.55, reason: "Recent behavior indicates distribution drift",          code: "DRIFT_SCORE_ELEVATED" },
+  { signal: "missingInformation",     minimum: 0.40, reason: "Important external context is unavailable",             code: "MISSING_INFORMATION_ELEVATED" },
+  { signal: "contextRisk",            minimum: 0.55, reason: "Contextual risk is elevated",                           code: "CONTEXT_RISK_ELEVATED" },
+];
+
+export { SIGNAL_RULES };
+
 export function buildDecision(
   basePrediction: number,
   signals: ReliabilitySignals,
-  options: { reliabilityThreshold?: number; isDemo?: boolean; context?: Pick<PredictionRecord, "commodity" | "market" | "variety" | "horizon"> },
+  options: { reliabilityThreshold?: number; isDemo?: boolean; context?: Pick<PredictionRecord, "commodity" | "market" | "variety" | "horizon"> } = {},
 ): PredictionRecord {
   const failureRisk = calculateRisk(signals);
   const reliability = 1 - failureRisk;
   const decision: Decision = reliability >= (options.reliabilityThreshold ?? DEFAULT_RELIABILITY_THRESHOLD) ? "ACCEPTED" : "ABSTAINED";
   const reasons: string[] = [];
-  if (signals.modelUncertainty >= 0.6) reasons.push("Model uncertainty is elevated");
-  if (signals.historicalFailureRisk >= 0.5) reasons.push("Similar historical cases showed high failure rates");
-  if (signals.noveltyScore >= 0.65) reasons.push("Current context is unusual relative to training data");
-  if (signals.driftScore >= 0.55) reasons.push("Recent behavior indicates distribution drift");
-  if (signals.missingInformation >= 0.4) reasons.push("Important external context is unavailable");
-  if (signals.contextRisk >= 0.55) reasons.push("Contextual risk is elevated");
+  const reasonCodes: string[] = [decision === "ACCEPTED" ? "RELIABILITY_AT_OR_ABOVE_THRESHOLD" : "RELIABILITY_BELOW_THRESHOLD"];
+  for (const rule of SIGNAL_RULES) {
+    if (signals[rule.signal] >= rule.minimum) {
+      reasons.push(rule.reason);
+      reasonCodes.push(rule.code);
+    }
+  }
   const base = options.context ?? { commodity: "Tomato", market: "Lasalgaon", variety: "Local", horizon: 7 };
   return {
     id: `pred_${Date.now()}_${Math.floor(basePrediction)}`,
@@ -97,7 +114,7 @@ export function buildDecision(
     isDemo: options.isDemo ?? false,
     signals,
     reasons,
-    reasonCodes: decision === "ACCEPTED" ? ["RELIABILITY_AT_OR_ABOVE_THRESHOLD"] : ["RELIABILITY_BELOW_THRESHOLD"],
+    reasonCodes,
   };
 }
 
