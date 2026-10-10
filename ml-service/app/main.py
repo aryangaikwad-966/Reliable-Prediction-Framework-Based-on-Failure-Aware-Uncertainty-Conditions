@@ -166,7 +166,7 @@ def get_features(request: PredictionRequest) -> dict:
                 from training.features import FEATURES, add_features
                 
                 # Add features
-                df_featured = add_features(df, request.horizon)
+                df_featured = add_features(df, request.horizon, is_training=False)
                 
                 # Get the most recent feature row
                 latest_features = df_featured.iloc[-1]

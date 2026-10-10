@@ -61,7 +61,7 @@ def normalize_columns(frame: pd.DataFrame) -> pd.DataFrame:
     return frame
 
 
-def add_features(frame: pd.DataFrame, horizon: int = 7) -> pd.DataFrame:
+def add_features(frame: pd.DataFrame, horizon: int = 7, is_training: bool = True) -> pd.DataFrame:
     frame = frame.sort_values(["market", "commodity", "variety", "report_date"]).copy()
     group = frame.groupby(["market", "commodity", "variety"], group_keys=False)
     for lag in [1, 2, 3, 7, 14, 30]:
@@ -82,4 +82,5 @@ def add_features(frame: pd.DataFrame, horizon: int = 7) -> pd.DataFrame:
     frame["month"] = frame["report_date"].dt.month
     frame["week_of_year"] = frame["report_date"].dt.isocalendar().week.astype(int)
     frame["target"] = group["modal_price"].shift(-horizon)
-    return frame.replace([float("inf"), float("-inf")], pd.NA).dropna(subset=FEATURES + ["target"])
+    subset = FEATURES + ["target"] if is_training else FEATURES
+    return frame.replace([float("inf"), float("-inf")], pd.NA).dropna(subset=subset)
