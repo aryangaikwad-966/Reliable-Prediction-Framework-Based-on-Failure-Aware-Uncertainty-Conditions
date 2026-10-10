@@ -94,7 +94,7 @@ def get_features(request: PredictionRequest) -> dict:
             with conn.cursor() as cur:
                 # Query historical data for the commodity/market/variety
                 cur.execute("""
-                    SELECT report_date, modal_price, arrivals
+                    SELECT report_date, market, commodity, variety, modal_price, arrivals
                     FROM market_data
                     WHERE commodity = %s AND market = %s AND variety = %s
                     ORDER BY report_date DESC
@@ -109,7 +109,7 @@ def get_features(request: PredictionRequest) -> dict:
                     )
                 
                 # Convert to DataFrame
-                df = pd.DataFrame(rows, columns=["report_date", "modal_price", "arrivals"])
+                df = pd.DataFrame(rows, columns=["report_date", "market", "commodity", "variety", "modal_price", "arrivals"])
                 df["report_date"] = pd.to_datetime(df["report_date"])
                 df = df.sort_values("report_date").reset_index(drop=True)
                 

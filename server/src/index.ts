@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { checkDatabase, getDatabaseSummary, listFailures, listPredictions, saveFailure, savePrediction, pool } from "./db";
 import { buildDemoPrediction, buildDecision, buildDemoPrediction as demoPrediction, classifyFailure, DEFAULT_FAILURE_THRESHOLD, DEFAULT_RELIABILITY_THRESHOLD, demoFailures, demoPredictions, summarizePredictions, evaluateRegression } from "./research";
-import type { FailureRecord } from "./research";
+import type { FailureRecord, ReliabilitySignals } from "./research";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
@@ -38,8 +38,24 @@ app.get("/api/health", async (_req, res) => {
   res.json({ ok: true, service: "node-api", database, mlService: process.env.ML_SERVICE_URL ?? "http://127.0.0.1:8000", demoMode });
 });
 
-app.get("/api/metadata", (_req, res) => {
-  res.json({ commodities: ["Tomato", "Onion", "Potato", "Wheat"], markets: ["Lasalgaon", "Pune", "Nashik", "Kolar"], varieties: ["Local", "Hybrid", "Red", "FAQ"] });
+app.get("/api/metadata", async (_req, res, next) => {
+  try {
+    if (!pool) return res.json({ commodities: [], markets: [], varieties: [], combinations: [] });
+    const result = await pool.query(`
+      SELECT commodity, market, variety, COUNT(*)::int AS rows
+      FROM market_data
+      GROUP BY commodity, market, variety
+      HAVING COUNT(*) >= 30
+      ORDER BY commodity, market, variety
+    `);
+    const combinations = result.rows;
+    return res.json({
+      commodities: [...new Set(combinations.map((row) => row.commodity))],
+      markets: [...new Set(combinations.map((row) => row.market))],
+      varieties: [...new Set(combinations.map((row) => row.variety))],
+      combinations,
+    });
+  } catch (error) { return next(error); }
 });
 
 app.get("/api/dashboard", async (_req, res, next) => {
@@ -135,8 +151,26 @@ app.post("/api/predictions", async (req, res, next) => {
           signal: AbortSignal.timeout(10_000)
         });
         if (!predictResponse.ok) throw new Error(`ML service predict endpoint returned ${predictResponse.status}`);
-        const value = await predictResponse.json() as { base_prediction: number; signals: Record<string, number> };
-        result = buildDecision(value.base_prediction, value.signals as never, { context: input, isDemo: false });
+        const value = await predictResponse.json() as {
+          base_prediction: number;
+          signals: {
+            model_uncertainty: number;
+            historical_failure_risk: number;
+            novelty_score: number;
+            drift_score: number;
+            missing_information: number;
+            context_risk: number;
+          };
+        };
+        const signals: ReliabilitySignals = {
+          modelUncertainty: value.signals.model_uncertainty,
+          historicalFailureRisk: value.signals.historical_failure_risk,
+          noveltyScore: value.signals.novelty_score,
+          driftScore: value.signals.drift_score,
+          missingInformation: value.signals.missing_information,
+          contextRisk: value.signals.context_risk,
+        };
+        result = buildDecision(value.base_prediction, signals, { context: input, isDemo: false });
       } catch (error) {
         console.error("ML service error:", error);
         return res.status(503).json({ error: "The live ML service is unavailable. Start FastAPI or enable DEMO_MODE for explicitly labelled demo decisions." });

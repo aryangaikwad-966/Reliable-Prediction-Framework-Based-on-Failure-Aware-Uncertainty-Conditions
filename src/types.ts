@@ -70,3 +70,62 @@ export interface EvaluationMetrics {
   failureDetectionRate: number | null;
   aurc: number | null;
 }
+
+export interface ServiceHealth {
+  ok: boolean;
+  service: string;
+  database: { connected: boolean; mode: "LIVE" | "DEMO" };
+  mlService: string;
+  demoMode: boolean;
+}
+
+export interface Metadata {
+  commodities: string[];
+  markets: string[];
+  varieties: string[];
+  combinations: Array<{ commodity: string; market: string; variety: string; rows: number }>;
+}
+
+export interface ReliabilityItem {
+  id: string;
+  reliability: number;
+  failureRisk: number;
+  decision: Decision;
+}
+
+export interface UncertaintyItem {
+  id: string;
+  modelUncertainty: number;
+  historicalFailureRisk: number;
+  noveltyScore: number;
+  driftScore: number;
+  missingInformation: number;
+  contextRisk: number;
+}
+
+export interface DriftData {
+  status: string;
+  score: number | null;
+  affectedFeatures: string[];
+  reason?: string;
+  detectionDate?: string;
+  methodology?: string;
+}
+
+export interface Experiment {
+  id?: number;
+  name: string;
+  status: string;
+  startedAt?: string;
+  completedAt?: string;
+  metrics?: Record<string, number> | null;
+  coverage?: number | null;
+  selectiveRisk?: number | null;
+  failureDetectionRate?: number | null;
+  calibration?: unknown;
+}
+
+export interface DataSummary {
+  recordCount: number | null;
+  dateRange: { from: string; to: string } | null;
+}
