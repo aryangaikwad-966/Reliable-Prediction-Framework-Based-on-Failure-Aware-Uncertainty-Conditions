@@ -61,7 +61,7 @@ ML_PID=$!
 
 echo ""
 echo "=== Services Started ==="
-echo "Frontend:     http://localhost:5000"
+echo "Frontend:     http://localhost:5173"
 echo "Backend API:  http://localhost:3001"
 echo "ML Service:   http://localhost:8000"
 echo ""

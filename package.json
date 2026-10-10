@@ -12,7 +12,7 @@
     "start": "tsx server/src/index.ts",
     "test": "vitest run",
     "test:integration": "vitest run server/src/integration.test.ts",
-    "test:all": "vitest run && cd ml-service && python3 -m pytest test_core.py -q && cd ..",
+    "test:all": "vitest run && cd ml-service && python3 -m pytest app/test_core.py -q && cd ..",
     "db:setup": "psql \"$DATABASE_URL\" -f db/schema.sql",
     "typecheck": "tsc --noEmit"
   },

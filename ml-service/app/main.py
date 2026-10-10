@@ -7,19 +7,32 @@ import joblib
 import numpy as np
 import pandas as pd
 import psycopg
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 
 from .core import Signals, novelty_score, selective_decision
 from .schemas import PredictionRequest, TrainRequest
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# The Node service already reads the root .env.  Load the same non-secret
+# configuration here so `npm run dev:ml` has the documented database and model
+# settings without requiring callers to export them manually.
+load_dotenv(PROJECT_ROOT / ".env")
+
 app = FastAPI(title="Reliable Prediction ML Service", version="1.0.0")
-MODEL_DIR = Path(os.getenv("MODEL_DIR", "./models"))
+MODEL_DIR = Path(os.getenv("MODEL_DIR", str(PROJECT_ROOT / "ml-service" / "models")))
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True, "service": "fastapi-ml", "model_dir": str(MODEL_DIR)}
+    return {
+        "ok": True,
+        "service": "fastapi-ml",
+        "model_dir": str(MODEL_DIR),
+        "model_available": (MODEL_DIR / "latest.joblib").exists(),
+        "database_configured": bool(DATABASE_URL),
+    }
 
 
 @app.post("/predict")
@@ -28,6 +41,12 @@ def predict(request: PredictionRequest) -> dict:
     if not model_path.exists():
         raise HTTPException(status_code=503, detail="No trained model is available. Run the training pipeline first.")
     artifact = joblib.load(model_path)
+    model_commodity = artifact.get("metadata", {}).get("commodity")
+    if model_commodity and request.commodity != model_commodity:
+        raise HTTPException(
+            status_code=422,
+            detail=f"The loaded model supports {model_commodity} only; {request.commodity} is out of scope.",
+        )
     feature_names = artifact["features"]
     values = [float(request.features.get(name, np.nan)) for name in feature_names]
     if any(np.isnan(values)):
@@ -43,12 +62,42 @@ def predict(request: PredictionRequest) -> dict:
         try:
             with psycopg.connect(DATABASE_URL) as conn:
                 with conn.cursor() as cur:
+                    # Evaluation imports preserve the source market code in
+                    # failure_memory, whereas live requests use the market's
+                    # display name.  Resolve the selected series back to its
+                    # code and only retrieve outcomes available by its latest
+                    # observation date, so later outcomes cannot leak into a
+                    # historical as-of prediction.
                     cur.execute("""
-                        SELECT COUNT(*) as total, 
-                               SUM(CASE WHEN severity != 'NORMAL' THEN 1 ELSE 0 END) as failures
-                        FROM failure_memory
-                        WHERE commodity = %s AND market = %s
-                    """, (request.commodity, request.market))
+                        SELECT COUNT(*) AS total,
+                               SUM(CASE WHEN f.severity != 'NORMAL' THEN 1 ELSE 0 END) AS failures
+                        FROM failure_memory f
+                        WHERE f.commodity = %s
+                          AND f.variety = %s
+                          AND f.market IN (
+                              SELECT DISTINCT md.market_code::text
+                              FROM market_data md
+                              WHERE md.commodity = %s
+                                AND md.market = %s
+                                AND md.variety = %s
+                          )
+                          AND f.event_date::date <= (
+                              SELECT MAX(md.report_date)
+                              FROM market_data md
+                              WHERE md.commodity = %s
+                                AND md.market = %s
+                                AND md.variety = %s
+                          )
+                    """, (
+                        request.commodity,
+                        request.variety,
+                        request.commodity,
+                        request.market,
+                        request.variety,
+                        request.commodity,
+                        request.market,
+                        request.variety,
+                    ))
                     row = cur.fetchone()
                     if row and row[0] > 0:
                         historical_failure_risk = row[1] / row[0]
@@ -137,6 +186,8 @@ def get_features(request: PredictionRequest) -> dict:
                     "latest_date": str(df["report_date"].iloc[-1].date())
                 }
                 
+    except HTTPException:
+        raise
     except psycopg.Error as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     except Exception as e:

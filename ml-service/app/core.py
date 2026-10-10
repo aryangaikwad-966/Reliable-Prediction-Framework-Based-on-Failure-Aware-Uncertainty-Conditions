@@ -27,7 +27,9 @@ def failure_risk(signals: Signals) -> float:
         "missing_information": 0.10,
         "context_risk": 0.10,
     }
-    return clamp(sum(weights[key] * clamp(getattr(signals, key)) for key in weights))
+    # Keep the API boundary deterministic (and aligned with the Node service)
+    # when decimal weights sum to a value infinitesimally below one.
+    return round(clamp(sum(weights[key] * clamp(getattr(signals, key)) for key in weights)), 10)
 
 
 def selective_decision(base_prediction: float, signals: Signals, threshold: float = 0.70) -> dict:

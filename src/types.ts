@@ -1,4 +1,4 @@
-export type Decision = "ACCEPTED" | "ABSTAINED";
+export type Decision = "ACCEPTED" | "ABSTAINED" | "OUT_OF_SCOPE";
 
 export interface Prediction {
   id: string;

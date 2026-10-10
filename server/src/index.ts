@@ -126,6 +126,20 @@ app.get("/api/predictions/:id", async (req, res, next) => { try { const item = (
 app.post("/api/predictions", async (req, res, next) => {
   try {
     const input = predictionSchema.parse(req.body);
+    if (pool) {
+      const scope = await pool.query(
+        "select count(*)::int as rows from market_data where commodity = $1 and market = $2 and variety = $3",
+        [input.commodity, input.market, input.variety],
+      );
+      if (scope.rows[0]?.rows < 30) {
+        return res.status(422).json({
+          decision: "OUT_OF_SCOPE",
+          prediction: null,
+          error: "The selected commodity, market, and variety do not have enough historical observations for a supported forecast.",
+          details: { requiredRows: 30, availableRows: scope.rows[0]?.rows ?? 0 },
+        });
+      }
+    }
     let result;
     const mlUrl = process.env.ML_SERVICE_URL;
     if (!demoMode && mlUrl) {
@@ -150,7 +164,18 @@ app.post("/api/predictions", async (req, res, next) => {
           body: JSON.stringify({ ...input, features: featuresData.features }),
           signal: AbortSignal.timeout(10_000)
         });
-        if (!predictResponse.ok) throw new Error(`ML service predict endpoint returned ${predictResponse.status}`);
+        if (!predictResponse.ok) {
+          const errorText = await predictResponse.text();
+          if (predictResponse.status === 422) {
+            return res.status(422).json({
+              decision: "OUT_OF_SCOPE",
+              prediction: null,
+              error: "The requested context is outside the loaded model's supported scope.",
+              details: errorText,
+            });
+          }
+          throw new Error(`ML service predict endpoint returned ${predictResponse.status}: ${errorText}`);
+        }
         const value = await predictResponse.json() as {
           base_prediction: number;
           signals: {

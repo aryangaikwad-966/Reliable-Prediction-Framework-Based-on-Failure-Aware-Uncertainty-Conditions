@@ -190,7 +190,9 @@ describe("Integration tests for prediction pipeline", () => {
         contextRisk: 0,
       });
       
-      expect(risk1).toBe(1);
+      // Inputs are clamped before applying their 0.24 model-uncertainty
+      // weight; the aggregate remains in [0, 1].
+      expect(risk1).toBe(0.24);
       expect(risk2).toBe(0);
     });
     

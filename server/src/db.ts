@@ -22,7 +22,13 @@ export async function checkDatabase() {
 export async function listPredictions() {
   if (!pool) return [...predictions];
   const result = await pool.query("select id, commodity, market, variety, horizon, prediction, base_prediction as \"basePrediction\", reliability, failure_risk as \"failureRisk\", decision, created_at as \"createdAt\", is_demo as \"isDemo\", signals, reasons from predictions order by created_at desc limit 100");
-  return result.rows as PredictionRecord[];
+  return result.rows.map((row) => ({
+    ...row,
+    prediction: row.prediction == null ? null : Number(row.prediction),
+    basePrediction: Number(row.basePrediction),
+    reliability: Number(row.reliability),
+    failureRisk: Number(row.failureRisk),
+  })) as PredictionRecord[];
 }
 
 export async function savePrediction(item: PredictionRecord) {
@@ -32,7 +38,7 @@ export async function savePrediction(item: PredictionRecord) {
       `insert into predictions (id, commodity, market, variety, horizon, prediction, base_prediction, reliability, failure_risk, decision, is_demo, signals, reasons)
        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
        on conflict (id) do nothing`,
-      [item.id, item.commodity, item.market, item.variety, item.horizon, item.prediction, item.basePrediction, item.reliability, item.failureRisk, item.decision, item.isDemo, item.signals, item.reasons],
+      [item.id, item.commodity, item.market, item.variety, item.horizon, item.prediction, item.basePrediction, item.reliability, item.failureRisk, item.decision, item.isDemo, JSON.stringify(item.signals), JSON.stringify(item.reasons)],
     );
   }
   return item;
@@ -41,7 +47,16 @@ export async function savePrediction(item: PredictionRecord) {
 export async function listFailures() {
   if (!pool) return [...failures];
   const result = await pool.query("select id, prediction_id as \"predictionId\", event_date as date, commodity, market, variety, prediction, actual, absolute_error as \"absoluteError\", relative_error as \"relativeError\", severity, reliability, novelty_score as \"noveltyScore\", drift_score as \"driftScore\", context from failure_memory order by event_date desc limit 100");
-  return result.rows as FailureRecord[];
+  return result.rows.map((row) => ({
+    ...row,
+    prediction: row.prediction == null ? null : Number(row.prediction),
+    actual: Number(row.actual),
+    absoluteError: Number(row.absoluteError),
+    relativeError: Number(row.relativeError),
+    reliability: Number(row.reliability),
+    noveltyScore: Number(row.noveltyScore),
+    driftScore: Number(row.driftScore),
+  })) as FailureRecord[];
 }
 
 export async function saveFailure(item: FailureRecord) {
