@@ -9,6 +9,18 @@ export const pool = connectionString ? new Pool({ connectionString, max: 5, ssl:
 const predictions: PredictionRecord[] = [];
 const failures: FailureRecord[] = [];
 
+export function normalizeSignals(value: unknown) {
+  const signals = (value ?? {}) as Record<string, number>;
+  return {
+    modelUncertainty: signals.modelUncertainty ?? signals.model_uncertainty ?? 0,
+    historicalFailureRisk: signals.historicalFailureRisk ?? signals.historical_failure_risk ?? 0,
+    noveltyScore: signals.noveltyScore ?? signals.novelty_score ?? 0,
+    driftScore: signals.driftScore ?? signals.drift_score ?? 0,
+    missingInformation: signals.missingInformation ?? signals.missing_information ?? 0,
+    contextRisk: signals.contextRisk ?? signals.context_risk ?? 0,
+  };
+}
+
 export async function checkDatabase() {
   if (!pool) return { connected: false, mode: "DEMO" as const };
   try {
@@ -28,7 +40,40 @@ export async function listPredictions() {
     basePrediction: Number(row.basePrediction),
     reliability: Number(row.reliability),
     failureRisk: Number(row.failureRisk),
+    signals: normalizeSignals(row.signals),
   })) as PredictionRecord[];
+}
+
+export async function listPredictionsPage(options: { limit: number; offset: number; decision?: string }) {
+  if (!pool) {
+    const rows = predictions.filter((item) => !options.decision || item.decision === options.decision);
+    return { data: rows.slice(options.offset, options.offset + options.limit), total: rows.length };
+  }
+  const values: Array<number | string> = [];
+  const filters: string[] = [];
+  if (options.decision) {
+    values.push(options.decision);
+    filters.push(`decision = $${values.length}`);
+  }
+  values.push(options.limit, options.offset);
+  const where = filters.length ? `where ${filters.join(" and ")}` : "";
+  const result = await pool.query(
+    `select id, commodity, market, variety, horizon, prediction, base_prediction as "basePrediction", reliability, failure_risk as "failureRisk", decision, created_at as "createdAt", is_demo as "isDemo", signals, reasons,
+      count(*) over()::int as total
+     from predictions ${where} order by created_at desc limit $${values.length - 1} offset $${values.length}`,
+    values,
+  );
+  return {
+    data: result.rows.map(({ total: _total, ...row }) => ({
+      ...row,
+      prediction: row.prediction == null ? null : Number(row.prediction),
+      basePrediction: Number(row.basePrediction),
+      reliability: Number(row.reliability),
+      failureRisk: Number(row.failureRisk),
+      signals: normalizeSignals(row.signals),
+    })) as PredictionRecord[],
+    total: result.rows[0]?.total ?? 0,
+  };
 }
 
 export async function savePrediction(item: PredictionRecord) {
@@ -70,6 +115,26 @@ export async function saveFailure(item: FailureRecord) {
     );
   }
   return item;
+}
+
+export async function saveOutcome(predictionId: string, actual: number, observedAt = new Date()) {
+  if (!pool) return { predictionId, actual, observedAt: observedAt.toISOString() };
+  // The database clock establishes the observation time and rejects an
+  // impossible record for a prediction created in the future.
+  const result = await pool.query(
+    `insert into prediction_outcomes (prediction_id, actual, observed_at)
+     select id, $2, now() from predictions where id = $1 and created_at <= now()
+     on conflict (prediction_id) do nothing
+     returning prediction_id as "predictionId", actual, observed_at as "observedAt"`,
+    [predictionId, actual],
+  );
+  if (!result.rows[0]) {
+    const exists = await pool.query("select 1 from predictions where id = $1", [predictionId]);
+    const error = new Error(exists.rows[0] ? "An outcome is already recorded for this prediction." : "Prediction does not exist or has a future creation time.") as Error & { code?: string };
+    error.code = exists.rows[0] ? "OUTCOME_ALREADY_RECORDED" : "PREDICTION_NOT_AVAILABLE";
+    throw error;
+  }
+  return result.rows[0];
 }
 
 export async function getDatabaseSummary() {

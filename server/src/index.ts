@@ -3,8 +3,9 @@ import cors from "cors";
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { readFile } from "node:fs/promises";
 import { z } from "zod";
-import { checkDatabase, getDatabaseSummary, listFailures, listPredictions, saveFailure, savePrediction, pool } from "./db";
+import { checkDatabase, getDatabaseSummary, listFailures, listPredictions, listPredictionsPage, saveFailure, saveOutcome, savePrediction, pool } from "./db";
 import { buildDemoPrediction, buildDecision, buildDemoPrediction as demoPrediction, classifyFailure, DEFAULT_FAILURE_THRESHOLD, DEFAULT_RELIABILITY_THRESHOLD, demoFailures, demoPredictions, summarizePredictions, evaluateRegression } from "./research";
 import type { FailureRecord, ReliabilitySignals } from "./research";
 
@@ -35,7 +36,18 @@ async function allFailures() {
 
 app.get("/api/health", async (_req, res) => {
   const database = await checkDatabase();
-  res.json({ ok: true, service: "node-api", database, mlService: process.env.ML_SERVICE_URL ?? "http://127.0.0.1:8000", demoMode });
+  const url = process.env.ML_SERVICE_URL ?? "http://127.0.0.1:8000";
+  let mlService: Record<string, unknown> = { url, reachable: false, ready: false, modelAvailable: false };
+  try {
+    const response = await fetch(`${url}/health`, { signal: AbortSignal.timeout(3_000) });
+    if (response.ok) {
+      const payload = await response.json() as { ok?: boolean; model_available?: boolean };
+      mlService = { url, reachable: true, ready: payload.ok === true && payload.model_available === true, modelAvailable: payload.model_available === true };
+    }
+  } catch {
+    mlService = { ...mlService, error: "ML health endpoint did not respond" };
+  }
+  res.json({ ok: true, service: "node-api", database, mlService, demoMode });
 });
 
 app.get("/api/metadata", async (_req, res, next) => {
@@ -120,7 +132,20 @@ app.get("/api/dashboard", async (_req, res, next) => {
   } catch (error) { next(error); }
 });
 
-app.get("/api/predictions", async (_req, res, next) => { try { res.json({ data: await allPredictions() }); } catch (error) { next(error); } });
+app.get("/api/predictions", async (req, res, next) => {
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit) || 25, 1), 100);
+    const offset = Math.max(Number(req.query.offset) || 0, 0);
+    const decision = typeof req.query.decision === "string" && ["ACCEPTED", "ABSTAINED"].includes(req.query.decision) ? req.query.decision : undefined;
+    if (!pool) {
+      const data = await allPredictions();
+      const filtered = data.filter((item) => !decision || item.decision === decision);
+      return res.json({ data: filtered.slice(offset, offset + limit), pagination: { limit, offset, total: filtered.length } });
+    }
+    const page = await listPredictionsPage({ limit, offset, decision });
+    return res.json({ data: page.data, pagination: { limit, offset, total: page.total } });
+  } catch (error) { return next(error); }
+});
 app.get("/api/predictions/:id", async (req, res, next) => { try { const item = (await allPredictions()).find((prediction) => prediction.id === req.params.id); if (!item) return res.status(404).json({ error: "Prediction not found" }); return res.json(item); } catch (error) { return next(error); } });
 
 app.post("/api/predictions", async (req, res, next) => {
@@ -341,6 +366,21 @@ app.get("/api/evaluation", async (_req, res, next) => {
     });
   } catch (error) { return next(error); }
 });
+
+app.get("/api/research-results", async (_req, res, next) => {
+  try {
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+    const artifact = path.join(root, "apmc_failure_aware_output", "ablation_results.json");
+    const raw = await readFile(artifact, "utf8");
+    return res.json({
+      status: "VERIFIED_ARTIFACT",
+      source: "apmc_failure_aware_output/ablation_results.json",
+      target: "target_modal_price_h7d (Rs/Quintal)",
+      split: "chronological test partition",
+      data: JSON.parse(raw),
+    });
+  } catch (error) { return next(error); }
+});
 app.get("/api/experiments", async (_req, res, next) => {
   try {
     if (!pool) {
@@ -443,13 +483,17 @@ app.post("/api/outcomes", async (req, res, next) => {
     const input = outcomeSchema.parse(req.body);
     const prediction = (await allPredictions()).find((item) => item.id === input.predictionId);
     if (!prediction) return res.status(404).json({ error: "Prediction not found" });
+    await saveOutcome(prediction.id, input.actual);
     const base = prediction.prediction ?? prediction.basePrediction;
     const absoluteError = Math.abs(input.actual - base);
     const relativeError = input.actual === 0 ? absoluteError : absoluteError / Math.abs(input.actual);
     const failure: FailureRecord = { id: `failure_${Date.now()}`, predictionId: prediction.id, date: new Date().toISOString(), commodity: prediction.commodity, market: prediction.market, variety: prediction.variety, prediction: prediction.prediction, actual: input.actual, absoluteError: Number(absoluteError.toFixed(4)), relativeError: Number(relativeError.toFixed(4)), severity: classifyFailure(absoluteError, relativeError), reliability: prediction.reliability, noveltyScore: prediction.signals.noveltyScore, driftScore: prediction.signals.driftScore, context: { origin: "observed_outcome", threshold: DEFAULT_FAILURE_THRESHOLD } };
     await saveFailure(failure);
     return res.status(201).json(failure);
-  } catch (error) { return next(error); }
+  } catch (error) {
+    if ((error as { code?: string }).code === "OUTCOME_ALREADY_RECORDED") return res.status(409).json({ error: "An outcome is already recorded for this prediction." });
+    return next(error);
+  }
 });
 app.post("/api/failure-memory/update", (req, res, next) => { req.url = "/api/outcomes"; return app._router.handle(req, res, next); });
 app.post("/api/models/train", async (_req, res) => res.status(202).json({ status: "QUEUED", message: "Run ml-service/training/train.py with the APMC CSV to train a versioned XGBoost model." }));

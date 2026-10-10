@@ -75,8 +75,21 @@ export interface ServiceHealth {
   ok: boolean;
   service: string;
   database: { connected: boolean; mode: "LIVE" | "DEMO" };
-  mlService: string;
+  mlService: { url: string; reachable: boolean; ready: boolean; modelAvailable: boolean; error?: string };
   demoMode: boolean;
+}
+
+export interface PredictionPage {
+  data: Prediction[];
+  pagination: { limit: number; offset: number; total: number };
+}
+
+export interface ResearchResults {
+  status: "VERIFIED_ARTIFACT";
+  source: string;
+  target: string;
+  split: string;
+  data: Record<string, unknown>;
 }
 
 export interface Metadata {

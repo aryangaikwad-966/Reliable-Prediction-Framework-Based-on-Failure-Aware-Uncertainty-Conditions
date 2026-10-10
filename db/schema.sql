@@ -74,6 +74,7 @@ create table if not exists prediction_outcomes (
   observed_at timestamptz not null default now()
 );
 create index if not exists outcomes_prediction_idx on prediction_outcomes(prediction_id);
+create unique index if not exists outcomes_one_per_prediction_idx on prediction_outcomes(prediction_id);
 
 create table if not exists failure_memory (
   id text primary key,

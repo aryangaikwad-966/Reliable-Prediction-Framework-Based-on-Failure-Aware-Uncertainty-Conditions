@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { DashboardData, DataSummary, DriftData, EvaluationMetrics, Experiment, FailureCase, Metadata, Prediction, ReliabilityItem, ServiceHealth, UncertaintyItem } from "./types";
+import type { DashboardData, DataSummary, DriftData, EvaluationMetrics, Experiment, FailureCase, Metadata, Prediction, PredictionPage, ReliabilityItem, ResearchResults, ServiceHealth, UncertaintyItem } from "./types";
 
 const api = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || "/api" });
 
@@ -7,8 +7,14 @@ export async function getDashboard(): Promise<DashboardData> {
   return (await api.get("/dashboard")).data;
 }
 
-export async function getPredictions(): Promise<Prediction[]> {
-  return (await api.get("/predictions")).data.data;
+export async function getPredictions(offset = 0, decision = ""): Promise<PredictionPage> {
+  const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+  if (decision) params.set("decision", decision);
+  return (await api.get(`/predictions?${params}`)).data;
+}
+
+export async function getResearchResults(): Promise<ResearchResults> {
+  return (await api.get("/research-results")).data;
 }
 
 export async function createPrediction(input: {
@@ -17,7 +23,17 @@ export async function createPrediction(input: {
   variety: string;
   horizon: number;
 }): Promise<Prediction> {
-  return (await api.post("/predictions", input)).data;
+  try {
+    return (await api.post("/predictions", input)).data;
+  } catch (error) {
+    // A 422 with a decision is an expected OUT_OF_SCOPE business result,
+    // not a transport failure. Preserve its null prediction for the UI.
+    if (axios.isAxiosError(error) && error.response?.status === 422 && error.response.data?.decision === "OUT_OF_SCOPE") {
+      const result = error.response.data;
+      return { ...result, reasons: result.error ? [result.error] : [] } as Prediction;
+    }
+    throw error;
+  }
 }
 
 export async function getFailures(): Promise<FailureCase[]> {

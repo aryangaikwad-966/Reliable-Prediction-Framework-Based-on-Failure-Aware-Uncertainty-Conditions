@@ -33,8 +33,6 @@ pip install -r ml-service/requirements.txt
 **Node Dependencies:**
 ```bash
 npm install
-cd server && npm install
-cd ..
 ```
 
 **PostgreSQL Database:**
@@ -86,12 +84,27 @@ python populate_db.py
 ```
 
 ### Phase 5: Start the Dashboard
-Launch the web application (starts both the frontend and the Express backend):
+Start the ML service in one terminal, then the web application (Express and Vite) in another:
 
 ```bash
+npm run dev:ml
 npm run dev
 ```
 Navigate to `http://localhost:5173` to view the Failure-Aware Dashboard.
+
+The API is served at `http://localhost:3001` and FastAPI at `http://localhost:8000`.
+
+## Health checks and tests
+
+```bash
+curl http://localhost:3001/api/health
+npm run typecheck
+npm test
+npm run build
+cd ml-service && python3 -m pytest app/test_core.py -q
+```
+
+The UI keeps offline experiment metrics separate from operational database metrics. The checked-in ablation artifact covers the chronological test partition; it is not live production performance. See `UI_BACKEND_INTEGRATION_MATRIX.md`, `UI_IMPLEMENTATION_REPORT.md`, and `END_TO_END_VERIFICATION_REPORT.md` for the current integration and verification record.
 
 ---
 
