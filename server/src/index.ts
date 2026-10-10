@@ -6,8 +6,8 @@ import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { checkDatabase, getDatabaseSummary, listFailures, listPredictions, listPredictionsPage, saveFailure, saveOutcome, savePrediction, pool } from "./db";
-import { buildDemoPrediction, buildDecision, buildDemoPrediction as demoPrediction, classifyFailure, DEFAULT_FAILURE_THRESHOLD, DEFAULT_RELIABILITY_THRESHOLD, demoFailures, demoPredictions, summarizePredictions, evaluateRegression } from "./research";
-import type { FailureRecord, ReliabilitySignals } from "./research";
+import { buildDemoPrediction, buildDemoPrediction as demoPrediction, classifyFailure, DEFAULT_FAILURE_THRESHOLD, DEFAULT_RELIABILITY_THRESHOLD, demoFailures, demoPredictions, summarizePredictions, evaluateRegression } from "./research";
+import type { Decision, FailureRecord, PredictionRecord, ReliabilitySignals } from "./research";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
@@ -23,6 +23,50 @@ const predictionSchema = z.object({
 });
 
 const outcomeSchema = z.object({ predictionId: z.string().min(1), actual: z.number().finite().nonnegative() });
+
+type MlDecisionResponse = {
+  base_prediction: number;
+  prediction: number | null;
+  failure_probability: number;
+  reliability: number;
+  decision: Decision;
+  reasons?: string[];
+  reason_codes?: string[];
+  signals: {
+    model_uncertainty: number;
+    historical_failure_risk: number;
+    novelty_score: number;
+    drift_score: number;
+    missing_information: number;
+    context_risk: number;
+  };
+};
+
+function recordMlDecision(value: MlDecisionResponse, context: z.infer<typeof predictionSchema>): PredictionRecord {
+  const signals: ReliabilitySignals = {
+    modelUncertainty: value.signals.model_uncertainty,
+    historicalFailureRisk: value.signals.historical_failure_risk,
+    noveltyScore: value.signals.novelty_score,
+    driftScore: value.signals.drift_score,
+    missingInformation: value.signals.missing_information,
+    contextRisk: value.signals.context_risk,
+  };
+  return {
+    id: `pred_${Date.now()}_${Math.floor(value.base_prediction)}`,
+    ...context,
+    // Preserve the ML service's structured decision and computed values.
+    prediction: value.prediction,
+    basePrediction: value.base_prediction,
+    reliability: value.reliability,
+    failureRisk: value.failure_probability,
+    decision: value.decision,
+    createdAt: new Date().toISOString(),
+    isDemo: false,
+    signals,
+    reasons: value.reasons ?? [],
+    reasonCodes: value.reason_codes ?? [],
+  };
+}
 
 async function allPredictions() {
   const stored = await listPredictions();
@@ -160,6 +204,7 @@ app.post("/api/predictions", async (req, res, next) => {
         return res.status(422).json({
           decision: "OUT_OF_SCOPE",
           prediction: null,
+          reasonCodes: ["INSUFFICIENT_HISTORICAL_OBSERVATIONS"],
           error: "The selected commodity, market, and variety do not have enough historical observations for a supported forecast.",
           details: { requiredRows: 30, availableRows: scope.rows[0]?.rows ?? 0 },
         });
@@ -195,32 +240,15 @@ app.post("/api/predictions", async (req, res, next) => {
             return res.status(422).json({
               decision: "OUT_OF_SCOPE",
               prediction: null,
+              reasonCodes: ["MODEL_SCOPE_REJECTED"],
               error: "The requested context is outside the loaded model's supported scope.",
               details: errorText,
             });
           }
           throw new Error(`ML service predict endpoint returned ${predictResponse.status}: ${errorText}`);
         }
-        const value = await predictResponse.json() as {
-          base_prediction: number;
-          signals: {
-            model_uncertainty: number;
-            historical_failure_risk: number;
-            novelty_score: number;
-            drift_score: number;
-            missing_information: number;
-            context_risk: number;
-          };
-        };
-        const signals: ReliabilitySignals = {
-          modelUncertainty: value.signals.model_uncertainty,
-          historicalFailureRisk: value.signals.historical_failure_risk,
-          noveltyScore: value.signals.novelty_score,
-          driftScore: value.signals.drift_score,
-          missingInformation: value.signals.missing_information,
-          contextRisk: value.signals.context_risk,
-        };
-        result = buildDecision(value.base_prediction, signals, { context: input, isDemo: false });
+        const value = await predictResponse.json() as MlDecisionResponse;
+        result = recordMlDecision(value, input);
       } catch (error) {
         console.error("ML service error:", error);
         return res.status(503).json({ error: "The live ML service is unavailable. Start FastAPI or enable DEMO_MODE for explicitly labelled demo decisions." });

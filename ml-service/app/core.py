@@ -37,17 +37,19 @@ def selective_decision(base_prediction: float, signals: Signals, threshold: floa
     reliability = 1.0 - risk
     accepted = reliability >= threshold
     reasons: list[str] = []
+    reason_codes: list[str] = ["RELIABILITY_AT_OR_ABOVE_THRESHOLD" if accepted else "RELIABILITY_BELOW_THRESHOLD"]
     labels = (
-        ("model_uncertainty", 0.60, "Model uncertainty is elevated"),
-        ("historical_failure_risk", 0.50, "Similar historical cases showed high failure rates"),
-        ("novelty_score", 0.65, "Current context is unusual relative to training data"),
-        ("drift_score", 0.55, "Recent behavior indicates distribution drift"),
-        ("missing_information", 0.40, "Important external context is unavailable"),
-        ("context_risk", 0.55, "Contextual risk is elevated"),
+        ("model_uncertainty", 0.60, "Model uncertainty is elevated", "MODEL_UNCERTAINTY_ELEVATED"),
+        ("historical_failure_risk", 0.50, "Similar historical cases showed high failure rates", "HISTORICAL_FAILURE_RISK_ELEVATED"),
+        ("novelty_score", 0.65, "Current context is unusual relative to training data", "NOVELTY_SCORE_ELEVATED"),
+        ("drift_score", 0.55, "Recent behavior indicates distribution drift", "DRIFT_SCORE_ELEVATED"),
+        ("missing_information", 0.40, "Important external context is unavailable", "MISSING_INFORMATION_ELEVATED"),
+        ("context_risk", 0.55, "Contextual risk is elevated", "CONTEXT_RISK_ELEVATED"),
     )
-    for field, limit, reason in labels:
+    for field, limit, reason, code in labels:
         if getattr(signals, field) >= limit:
             reasons.append(reason)
+            reason_codes.append(code)
     return {
         "base_prediction": float(base_prediction),
         "prediction": float(base_prediction) if accepted else None,
@@ -55,6 +57,7 @@ def selective_decision(base_prediction: float, signals: Signals, threshold: floa
         "reliability": round(reliability, 4),
         "decision": "ACCEPTED" if accepted else "ABSTAINED",
         "reasons": reasons,
+        "reason_codes": reason_codes,
         "signals": signals.__dict__,
     }
 

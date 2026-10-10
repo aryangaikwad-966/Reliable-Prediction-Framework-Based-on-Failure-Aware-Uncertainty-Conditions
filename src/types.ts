@@ -7,12 +7,12 @@ export interface Prediction {
   variety: string;
   horizon: number;
   prediction: number | null;
-  reliability: number;
-  failureRisk: number;
+  reliability?: number;
+  failureRisk?: number;
   decision: Decision;
   createdAt: string;
   isDemo?: boolean;
-  signals: {
+  signals?: {
     modelUncertainty: number;
     historicalFailureRisk: number;
     noveltyScore: number;
@@ -20,7 +20,10 @@ export interface Prediction {
     missingInformation: number;
     contextRisk: number;
   };
-  reasons: string[];
+  reasons?: string[];
+  reasonCodes?: string[];
+  /** The API's scope-validation reason, when a request is OUT_OF_SCOPE. */
+  error?: string;
 }
 
 export interface DashboardData {

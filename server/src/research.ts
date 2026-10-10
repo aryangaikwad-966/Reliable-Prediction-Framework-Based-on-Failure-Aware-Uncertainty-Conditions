@@ -25,6 +25,7 @@ export interface PredictionRecord {
   isDemo: boolean;
   signals: ReliabilitySignals;
   reasons: string[];
+  reasonCodes: string[];
 }
 
 export interface FailureRecord {
@@ -96,6 +97,7 @@ export function buildDecision(
     isDemo: options.isDemo ?? false,
     signals,
     reasons,
+    reasonCodes: decision === "ACCEPTED" ? ["RELIABILITY_AT_OR_ABOVE_THRESHOLD"] : ["RELIABILITY_BELOW_THRESHOLD"],
   };
 }
 

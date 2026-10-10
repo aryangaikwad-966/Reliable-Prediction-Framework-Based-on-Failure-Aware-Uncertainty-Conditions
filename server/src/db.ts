@@ -21,6 +21,26 @@ export function normalizeSignals(value: unknown) {
   };
 }
 
+/** Stored imports may contain JSON text while live writes store JSON arrays. */
+export function normalizeReasons(value: unknown): string[] {
+  if (value && typeof value === "object" && !Array.isArray(value)) return normalizeReasons((value as { messages?: unknown }).messages);
+  if (Array.isArray(value)) return value.filter((reason): reason is string => typeof reason === "string");
+  if (typeof value !== "string") return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((reason): reason is string => typeof reason === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export function normalizeReasonCodes(value: unknown): string[] {
+  if (value && typeof value === "object" && !Array.isArray(value)) return normalizeReasonCodes((value as { codes?: unknown }).codes);
+  if (Array.isArray(value)) return value.filter((code): code is string => typeof code === "string");
+  if (typeof value !== "string") return [];
+  try { return normalizeReasonCodes(JSON.parse(value)); } catch { return []; }
+}
+
 export async function checkDatabase() {
   if (!pool) return { connected: false, mode: "DEMO" as const };
   try {
@@ -41,6 +61,8 @@ export async function listPredictions() {
     reliability: Number(row.reliability),
     failureRisk: Number(row.failureRisk),
     signals: normalizeSignals(row.signals),
+    reasons: normalizeReasons(row.reasons),
+    reasonCodes: normalizeReasonCodes(row.reasons),
   })) as PredictionRecord[];
 }
 
@@ -71,6 +93,8 @@ export async function listPredictionsPage(options: { limit: number; offset: numb
       reliability: Number(row.reliability),
       failureRisk: Number(row.failureRisk),
       signals: normalizeSignals(row.signals),
+      reasons: normalizeReasons(row.reasons),
+      reasonCodes: normalizeReasonCodes(row.reasons),
     })) as PredictionRecord[],
     total: result.rows[0]?.total ?? 0,
   };
@@ -83,7 +107,7 @@ export async function savePrediction(item: PredictionRecord) {
       `insert into predictions (id, commodity, market, variety, horizon, prediction, base_prediction, reliability, failure_risk, decision, is_demo, signals, reasons)
        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
        on conflict (id) do nothing`,
-      [item.id, item.commodity, item.market, item.variety, item.horizon, item.prediction, item.basePrediction, item.reliability, item.failureRisk, item.decision, item.isDemo, JSON.stringify(item.signals), JSON.stringify(item.reasons)],
+      [item.id, item.commodity, item.market, item.variety, item.horizon, item.prediction, item.basePrediction, item.reliability, item.failureRisk, item.decision, item.isDemo, JSON.stringify(item.signals), JSON.stringify({ messages: item.reasons, codes: item.reasonCodes })],
     );
   }
   return item;

@@ -30,7 +30,7 @@ export async function createPrediction(input: {
     // not a transport failure. Preserve its null prediction for the UI.
     if (axios.isAxiosError(error) && error.response?.status === 422 && error.response.data?.decision === "OUT_OF_SCOPE") {
       const result = error.response.data;
-      return { ...result, reasons: result.error ? [result.error] : [] } as Prediction;
+      return result as Prediction;
     }
     throw error;
   }

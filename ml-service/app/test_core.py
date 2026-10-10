@@ -10,6 +10,14 @@ def test_abstention_withholds_prediction():
     result = selective_decision(500, Signals(1, 1, 1, 1, 1, 1))
     assert result["decision"] == "ABSTAINED"
     assert result["prediction"] is None
+    assert "RELIABILITY_BELOW_THRESHOLD" in result["reason_codes"]
+    assert "MODEL_UNCERTAINTY_ELEVATED" in result["reason_codes"]
+
+
+def test_acceptance_reports_its_actual_reliability_rule():
+    result = selective_decision(500, Signals(0, 0, 0, 0, 0, 0))
+    assert result["decision"] == "ACCEPTED"
+    assert result["reason_codes"] == ["RELIABILITY_AT_OR_ABOVE_THRESHOLD"]
 
 
 def test_novelty_and_drift_are_computable():
