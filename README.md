@@ -167,12 +167,15 @@ cd ml-service
 python3 -m pytest app/test_core.py -q
 cd ..
 
-# Train a versioned model and update latest.joblib
-python3 ml-service/training/train.py \
-  --data data/apmc-arrivals-and-prices-old-data.csv \
+# Train a versioned model and update latest.joblib.
+# Run as a package from ml-service so training.* imports resolve.
+cd ml-service
+python3 -m training.train \
+  --data ../data/apmc-arrivals-and-prices-old-data.csv \
   --commodity Tomato \
   --horizon 7 \
-  --model-dir ml-service/models
+  --model-dir models
+cd ..
 ```
 
 ## Data and research workflows
