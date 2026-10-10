@@ -21,14 +21,39 @@ def ingest(path: str, database_url: str, chunk_size: int = 100_000) -> int:
         with connection.cursor() as cursor:
             for chunk in pd.read_csv(path, chunksize=chunk_size, low_memory=False):
                 frame = normalize_columns(chunk)
-                grouped = frame.groupby(["report_date", "market", "commodity", "variety"], as_index=False).agg(
-                    market_code=("market_code", "first") if "market_code" in frame.columns else ("market", "first"),
-                    arrivals=("arrivals", "mean"),
-                    min_price=("min_price", "mean") if "min_price" in frame.columns else ("modal_price", "min"),
-                    max_price=("max_price", "mean") if "max_price" in frame.columns else ("modal_price", "max"),
-                    modal_price=("modal_price", "mean"),
-                )
-                rows = [tuple(row) for row in grouped.itertuples(index=False, name=None)]
+                
+                # Handle missing columns safely for ingestion
+                if "market_code" not in frame.columns:
+                    frame["market_code"] = frame["market"]
+                if "min_price" not in frame.columns or frame["min_price"].isna().all():
+                    frame["min_price"] = frame["modal_price"]
+                if "max_price" not in frame.columns or frame["max_price"].isna().all():
+                    frame["max_price"] = frame["modal_price"]
+                
+                # Group by natural key and aggregate
+                grouped = frame.groupby(["report_date", "market", "commodity", "variety"], as_index=False).agg({
+                    "market_code": "first",
+                    "arrivals": "mean",
+                    "min_price": "mean",
+                    "max_price": "mean",
+                    "modal_price": "mean",
+                })
+                
+                # Prepare rows for insertion
+                rows = []
+                for _, row in grouped.iterrows():
+                    rows.append((
+                        row["report_date"],
+                        row["market"],
+                        row["commodity"],
+                        row["variety"],
+                        row["market_code"],
+                        row["arrivals"],
+                        row["min_price"],
+                        row["max_price"],
+                        row["modal_price"],
+                    ))
+                
                 cursor.executemany(
                     """insert into market_data (report_date, market, commodity, variety, market_code, arrivals, min_price, max_price, modal_price)
                     values (%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
@@ -36,6 +61,7 @@ def ingest(path: str, database_url: str, chunk_size: int = 100_000) -> int:
                 )
                 connection.commit()
                 total += len(rows)
+                print(f"Ingested {total} rows so far...")
     return total
 
 

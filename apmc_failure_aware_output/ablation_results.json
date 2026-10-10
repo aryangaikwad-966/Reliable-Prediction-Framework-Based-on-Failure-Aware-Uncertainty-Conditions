@@ -1,0 +1,52 @@
+{
+    "A_Persistence": {
+        "mae": 418.834251849615,
+        "rmse": 636.6156189457428
+    },
+    "B_XGBoost_Differenced": {
+        "mae": 886.3519556897654,
+        "rmse": 1098.1351355048175
+    },
+    "C_Uncertainty": {
+        "coverage": 0.7763853238713574,
+        "mae": 792.9100474258722,
+        "rmse": 965.5609583334123,
+        "smape": 29.34747215132378,
+        "abstention_rate": 0.2236146761286426,
+        "failure_detection_rate": 0.23811424516586838,
+        "false_acceptance_rate": 0.8352294826915597,
+        "accepted_count": 20568
+    },
+    "D_FailureMemory": {
+        "coverage": 0.8121319643666013,
+        "mae": 870.5182412599509,
+        "rmse": 1068.0569258407736,
+        "smape": 31.496854981885914,
+        "abstention_rate": 0.1878680356333987,
+        "failure_detection_rate": 0.1812134113890367,
+        "false_acceptance_rate": 0.858099000697188,
+        "accepted_count": 21515
+    },
+    "E_Combined": {
+        "coverage": 0.7650234032915597,
+        "mae": 807.1041099339195,
+        "rmse": 988.9177215821537,
+        "smape": 29.83882243650958,
+        "abstention_rate": 0.2349765967084403,
+        "failure_detection_rate": 0.2453876175270534,
+        "false_acceptance_rate": 0.8395421127941974,
+        "accepted_count": 20267
+    },
+    "A_Persistence_at_E_Coverage": {
+        "coverage": 0.7650234032915597,
+        "mae": 380.3678393447476,
+        "rmse": 583.198126809599,
+        "smape": 15.45266717981406,
+        "abstention_rate": 0.2349765967084403,
+        "failure_detection_rate": 0.2889241563648513,
+        "false_acceptance_rate": 0.4200424335126067,
+        "accepted_count": 20267
+    },
+    "AURC_E": 723.4363653864282,
+    "Total_Test_Samples": 26492
+}

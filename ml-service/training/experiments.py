@@ -13,6 +13,7 @@ import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 import joblib
 import numpy as np
@@ -89,10 +90,10 @@ def run_experiment(
     config: str,
     data_path: str,
     commodity: str,
-    market: str | None,
+    market: Optional[str],
     horizon: int,
     model_dir: Path,
-    database_url: str | None,
+    database_url: Optional[str],
 ) -> dict:
     """Run a single experiment configuration."""
     print(f"\n{'='*60}")

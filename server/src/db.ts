@@ -2,9 +2,9 @@ import pg from "pg";
 import type { FailureRecord, PredictionRecord } from "./research";
 
 const { Pool } = pg;
-const connectionString = process.env.DATABASE_URL;
+const connectionString = process.env.DATABASE_URL || "postgresql://aryangaikwad@localhost:5432/reliable_prediction";
 export const dbEnabled = Boolean(connectionString);
-const pool = connectionString ? new Pool({ connectionString, max: 5, ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined }) : null;
+export const pool = connectionString ? new Pool({ connectionString, max: 5, ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined }) : null;
 
 const predictions: PredictionRecord[] = [];
 const failures: FailureRecord[] = [];

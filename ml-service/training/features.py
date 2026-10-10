@@ -21,6 +21,7 @@ def normalize_columns(frame: pd.DataFrame) -> pd.DataFrame:
         "Market Code": "market_code",
         "market": "market",
         "Market": "market",
+        "market_center": "market",
         "commodity": "commodity",
         "Commodity": "commodity",
         "variety": "variety",
@@ -29,8 +30,13 @@ def normalize_columns(frame: pd.DataFrame) -> pd.DataFrame:
         "Modal Price": "modal_price",
         "arrival": "arrivals",
         "arrivals": "arrivals",
+        "arrivals_tonnes": "arrivals",
         "Arrivals": "arrivals",
         "price_unit": "price_unit",
+        "min_price": "min_price",
+        "Min Price": "min_price",
+        "max_price": "max_price",
+        "Max Price": "max_price",
     }
     frame = frame.rename(columns={key: value for key, value in rename.items() if key in frame.columns})
     required = {"report_date", "market", "commodity", "modal_price"}
@@ -43,6 +49,13 @@ def normalize_columns(frame: pd.DataFrame) -> pd.DataFrame:
     frame["variety"] = frame.get("variety", "UNKNOWN").fillna("UNKNOWN").astype(str).str.strip()
     frame["market"] = frame["market"].fillna("UNKNOWN").astype(str).str.strip()
     frame["commodity"] = frame["commodity"].fillna("UNKNOWN").astype(str).str.strip()
+    
+    # Handle min_price and max_price if they exist
+    if "min_price" in frame.columns:
+        frame["min_price"] = pd.to_numeric(frame["min_price"], errors="coerce")
+    if "max_price" in frame.columns:
+        frame["max_price"] = pd.to_numeric(frame["max_price"], errors="coerce")
+    
     frame = frame.dropna(subset=["report_date", "modal_price"])
     frame = frame[frame["modal_price"] >= 0]
     return frame

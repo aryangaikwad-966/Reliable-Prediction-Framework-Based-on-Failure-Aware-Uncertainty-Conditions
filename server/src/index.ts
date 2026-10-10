@@ -4,13 +4,13 @@ import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
-import { checkDatabase, getDatabaseSummary, listFailures, listPredictions, saveFailure, savePrediction } from "./db";
+import { checkDatabase, getDatabaseSummary, listFailures, listPredictions, saveFailure, savePrediction, pool } from "./db";
 import { buildDemoPrediction, buildDecision, buildDemoPrediction as demoPrediction, classifyFailure, DEFAULT_FAILURE_THRESHOLD, DEFAULT_RELIABILITY_THRESHOLD, demoFailures, demoPredictions, summarizePredictions, evaluateRegression } from "./research";
 import type { FailureRecord } from "./research";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
-const demoMode = process.env.DEMO_MODE !== "false";
+const demoMode = process.env.DEMO_MODE === "true";
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 

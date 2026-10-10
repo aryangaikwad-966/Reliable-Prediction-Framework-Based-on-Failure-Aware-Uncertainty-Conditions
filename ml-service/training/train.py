@@ -4,6 +4,7 @@ import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 import joblib
 import numpy as np
@@ -14,7 +15,7 @@ from xgboost import XGBRegressor
 from training.features import FEATURES, add_features, normalize_columns
 
 
-def read_dataset(path: str, commodity: str, market: str | None = None) -> pd.DataFrame:
+def read_dataset(path: str, commodity: str, market: Optional[str] = None) -> pd.DataFrame:
     chunks = []
     for chunk in pd.read_csv(path, chunksize=100_000, low_memory=False):
         normalized = normalize_columns(chunk)
@@ -28,7 +29,7 @@ def read_dataset(path: str, commodity: str, market: str | None = None) -> pd.Dat
     return pd.concat(chunks, ignore_index=True)
 
 
-def train_model(data_path: str, commodity: str, market: str | None, horizon: int, test_fraction: float, model_dir: Path) -> dict:
+def train_model(data_path: str, commodity: str, market: Optional[str], horizon: int, test_fraction: float, model_dir: Path) -> dict:
     frame = add_features(read_dataset(data_path, commodity, market), horizon)
     frame = frame.sort_values("report_date")
     split = max(1, int(len(frame) * (1 - test_fraction)))
