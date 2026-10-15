@@ -479,6 +479,17 @@ button {
     padding-top: 5px
 }
 
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 16px;
+    margin-bottom: 16px
+}
+
+.dashboard-grid .panel {
+    min-width: 0
+}
+
 .chart-axis {
     display: flex;
     flex-direction: column;

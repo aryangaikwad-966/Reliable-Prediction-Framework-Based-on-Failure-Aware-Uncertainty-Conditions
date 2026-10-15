@@ -217,11 +217,22 @@ def get_features(request: PredictionRequest) -> dict:
     try:
         with psycopg.connect(DATABASE_URL) as conn:
             with conn.cursor() as cur:
-                # Query historical data for the commodity/market/variety
                 cur.execute("""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public' AND table_name = 'market_data'
+                      AND column_name IN ('temperature', 'rainfall', 'humidity', 'wind_speed',
+                                          'is_heatwave', 'is_coldwave', 'is_heavy_rain')
+                """)
+                climate_columns = {row[0] for row in cur.fetchall()}
+                selected_climate = [
+                    column if column in climate_columns else f"NULL AS {column}"
+                    for column in ("temperature", "rainfall", "humidity", "wind_speed",
+                                   "is_heatwave", "is_coldwave", "is_heavy_rain")
+                ]
+                cur.execute(f"""
                     SELECT report_date, market, commodity, variety, modal_price, arrivals,
-                           temperature, rainfall, humidity, wind_speed,
-                           is_heatwave, is_coldwave, is_heavy_rain
+                           {', '.join(selected_climate)}
                     FROM market_data
                     WHERE commodity = %s AND market = %s AND variety = %s
                     ORDER BY report_date DESC
@@ -273,7 +284,16 @@ def get_features(request: PredictionRequest) -> dict:
                 return {
                     "features": feature_dict,
                     "rows_used": len(rows),
-                    "latest_date": str(df["report_date"].iloc[-1].date())
+                    "latest_date": str(df["report_date"].iloc[-1].date()),
+                    "climate_available": all(
+                        column in df.columns and pd.notna(latest_features.get(column))
+                        for column in ("temperature", "rainfall", "humidity")
+                    ),
+                    "climate_status": (
+                        "evaluated"
+                        if all(pd.notna(latest_features.get(column)) for column in ("temperature", "rainfall", "humidity"))
+                        else "not_evaluated"
+                    ),
                 }
                 
     except HTTPException:

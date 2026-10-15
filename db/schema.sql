@@ -49,6 +49,17 @@ create table if not exists market_data (
   is_extreme_event boolean default false
 );
 
+-- Idempotent migration for databases created before climate integration.
+-- CREATE TABLE IF NOT EXISTS does not add columns to an existing table.
+alter table market_data add column if not exists temperature numeric;
+alter table market_data add column if not exists rainfall numeric;
+alter table market_data add column if not exists humidity numeric;
+alter table market_data add column if not exists wind_speed numeric;
+alter table market_data add column if not exists is_heatwave boolean default false;
+alter table market_data add column if not exists is_coldwave boolean default false;
+alter table market_data add column if not exists is_heavy_rain boolean default false;
+alter table market_data add column if not exists is_extreme_event boolean default false;
+
 create index if not exists market_data_date_idx on market_data(report_date);
 create index if not exists market_data_commodity_idx on market_data(commodity);
 create index if not exists market_data_market_idx on market_data(market);

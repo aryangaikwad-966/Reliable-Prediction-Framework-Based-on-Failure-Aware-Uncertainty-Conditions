@@ -10,6 +10,12 @@ from pathlib import Path
 from typing import Dict, List
 import random
 
+# Keep the demonstration dataset reproducible across machines. The climate
+# values are synthetic and must never be presented as real observations.
+SYNTHETIC_SEED = 42
+np.random.seed(SYNTHETIC_SEED)
+random.seed(SYNTHETIC_SEED)
+
 WORKSPACE = Path(__file__).resolve().parent.parent
 SRC_CSV = WORKSPACE / "data" / "apmc-arrivals-and-prices-old-data.csv"
 OUT_DIR = WORKSPACE / "apmc_failure_aware_output"

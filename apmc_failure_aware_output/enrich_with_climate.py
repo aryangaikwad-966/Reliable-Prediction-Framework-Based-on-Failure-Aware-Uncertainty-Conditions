@@ -56,7 +56,40 @@ def main():
     climate_count = con.execute("SELECT COUNT(*) FROM climate").fetchone()[0]
     print(f"  Climate rows: {climate_count:,}")
 
-    # Join on market_code and date
+    # Resolve the climate natural key before joining. A raw climate source can
+    # contain multiple observations for one market/date; joining directly
+    # multiplies APMC rows and keeping the first row is arbitrary.
+    duplicate_keys = con.execute("""
+        SELECT COUNT(*) FROM (
+            SELECT market_code, date
+            FROM climate
+            GROUP BY market_code, date
+            HAVING COUNT(*) > 1
+        )
+    """).fetchone()[0]
+    print(f"  Duplicate climate market/date keys: {duplicate_keys:,}")
+    con.execute("""
+        CREATE TABLE climate_resolved AS
+        SELECT
+            market_code,
+            date,
+            AVG(latitude) AS latitude,
+            AVG(longitude) AS longitude,
+            AVG(temperature) AS temperature,
+            AVG(rainfall) AS rainfall,
+            AVG(humidity) AS humidity,
+            AVG(wind_speed) AS wind_speed,
+            BOOL_OR(is_heatwave) AS is_heatwave,
+            BOOL_OR(is_coldwave) AS is_coldwave,
+            BOOL_OR(is_heavy_rain) AS is_heavy_rain,
+            BOOL_OR(is_extreme_event) AS is_extreme_event
+        FROM climate
+        GROUP BY market_code, date
+    """)
+    resolved_count = con.execute("SELECT COUNT(*) FROM climate_resolved").fetchone()[0]
+    print(f"  Resolved climate keys: {resolved_count:,}")
+
+    # Join on the now-unique verified market_code/date key.
     print("Joining APMC with climate data...")
     t0 = time.time()
     
@@ -73,7 +106,7 @@ def main():
         c.is_heavy_rain,
         c.is_extreme_event
     FROM apmc a
-    LEFT JOIN climate c
+    LEFT JOIN climate_resolved c
         ON a.market_code = c.market_code
         AND a.report_date = c.date
     """
