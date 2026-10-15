@@ -51,6 +51,7 @@ class TestPredictionAnomalyIntegration:
                 "lag_1": 1500.0,
                 "lag_2": 1450.0,
                 "lag_3": 1400.0,
+                "arrival_lag_1": 50.0,
                 "rolling_mean_7": 1480.0,
                 "rolling_mean_14": 1460.0,
             }
@@ -87,6 +88,7 @@ class TestPredictionAnomalyIntegration:
                 "lag_1": 100000.0,  # Extreme price
                 "lag_2": 1450.0,
                 "lag_3": 1400.0,
+                "arrival_lag_1": 50.0,
                 "rolling_mean_7": 1480.0,
                 "rolling_mean_14": 1460.0,
             }
@@ -110,6 +112,7 @@ class TestPredictionAnomalyIntegration:
                 "lag_1": 1500.0,
                 "lag_2": 1450.0,
                 "lag_3": 1400.0,
+                "arrival_lag_1": 50.0,
                 "rolling_mean_7": 1480.0,
                 "rolling_mean_14": 1460.0,
                 "temperature": 28.0,  # Normal temperature
@@ -141,6 +144,7 @@ class TestPredictionAnomalyIntegration:
                 "lag_1": 1500.0,
                 "lag_2": 1450.0,
                 "lag_3": 1400.0,
+                "arrival_lag_1": 50.0,
                 "rolling_mean_7": 1480.0,
                 "rolling_mean_14": 1460.0,
                 "temperature": 45.0,  # Extreme heat
@@ -171,6 +175,7 @@ class TestPredictionAnomalyIntegration:
                 "lag_1": 1500.0,
                 "lag_2": 1450.0,
                 "lag_3": 1400.0,
+                "arrival_lag_1": 50.0,
                 "rolling_mean_7": 1480.0,
                 "rolling_mean_14": 1460.0,
                 "temperature": 28.0,
@@ -199,6 +204,7 @@ class TestPredictionAnomalyIntegration:
                 "lag_1": 1500.0,
                 "lag_2": 1450.0,
                 "lag_3": 1400.0,
+                "arrival_lag_1": 50.0,
                 "rolling_mean_7": 1480.0,
                 "rolling_mean_14": 1460.0,
                 "temperature": 28.0,  # Only temperature, missing rain/humidity
@@ -223,6 +229,7 @@ class TestPredictionAnomalyIntegration:
                 "lag_1": 100000.0,  # Extreme price
                 "lag_2": 1450.0,
                 "lag_3": 1400.0,
+                "arrival_lag_1": 50.0,
                 "rolling_mean_7": 1480.0,
                 "rolling_mean_14": 1460.0,
                 "temperature": 45.0,  # Extreme heat
@@ -249,6 +256,36 @@ class TestPredictionAnomalyIntegration:
         # Verify decision reasons include anomalies if threshold exceeded
         if data["signals"]["climate_anomaly"] >= 0.5:
             assert any("climate" in reason.lower() for reason in data.get("reasons", []))
+
+    def test_invalid_climate_data_is_not_evaluated_as_normal(self, client):
+        response = client.post("/predict", json={
+            "commodity": "Onion", "market": "Abohar", "variety": "Onion", "horizon": 7,
+            "features": {
+                "lag_1": 1500.0, "lag_2": 1450.0, "lag_3": 1400.0,
+                "rolling_mean_7": 1480.0, "rolling_mean_14": 1460.0,
+                "arrival_lag_1": 50.0, "temperature": 28.0, "rainfall": -1.0, "humidity": 0.6,
+            },
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert data["anomaly_detection"]["climate_status"] == "invalid_or_incomplete"
+        assert data["anomaly_detection"]["climate_anomaly"] is None
+        assert data["signals"]["climate_anomaly"] is None
+
+    def test_invalid_market_arrivals_are_reported(self, client):
+        response = client.post("/predict", json={
+            "commodity": "Onion", "market": "Abohar", "variety": "Onion", "horizon": 7,
+            "features": {
+                "lag_1": 1500.0, "lag_2": 1450.0, "lag_3": 1400.0,
+                "rolling_mean_7": 1480.0, "rolling_mean_14": 1460.0,
+                "arrival_lag_1": -1.0,
+            },
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert data["anomaly_detection"]["market_data_status"] == "evaluated"
+        assert data["anomaly_detection"]["market_data_anomaly"]["score"] >= 0.5
+        assert "invalid_arrivals" in data["anomaly_detection"]["market_data_anomaly"]["reason"]
 
 
 if __name__ == "__main__":

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from datetime import datetime
 
 import joblib
 import numpy as np
@@ -27,7 +26,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
 
 app = FastAPI(title="Reliable Prediction ML Service", version="1.0.0")
-MODEL_DIR = Path(os.getenv("MODEL_DIR", str(PROJECT_ROOT / "ml-service" / "models")))
+configured_model_dir = Path(os.getenv("MODEL_DIR", "ml-service/models"))
+MODEL_DIR = configured_model_dir if configured_model_dir.is_absolute() else (PROJECT_ROOT / configured_model_dir).resolve()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 
@@ -64,7 +64,7 @@ def predict(request: PredictionRequest) -> dict:
     novelty = novelty_score(values, means, scales)
     
     # Calculate historical failure risk from database if available
-    historical_failure_risk = 0.0
+    historical_failure_risk: float | None = None
     if DATABASE_URL:
         try:
             with psycopg.connect(DATABASE_URL) as conn:
@@ -109,49 +109,51 @@ def predict(request: PredictionRequest) -> dict:
                     if row and row[0] > 0:
                         historical_failure_risk = row[1] / row[0]
         except Exception:
-            # If database query fails, use default
-            historical_failure_risk = 0.0
+            # An unavailable history signal is not the same as zero risk.
+            historical_failure_risk = None
     
     # Climate anomaly detection using ClimateAnomalyDetector
-    climate_anomaly = 0.0
+    climate_anomaly: float | None = None
     climate_anomaly_result = None
     climate_available = False
     
     # Check if climate features are provided in the request
-    has_temp = request.features.get("temperature") is not None
-    has_rain = request.features.get("rainfall") is not None
-    has_humidity = request.features.get("humidity") is not None
-    
-    if has_temp and has_rain and has_humidity:
+    climate_values = {
+        name: request.features.get(name)
+        for name in ("temperature", "rainfall", "humidity")
+    }
+    climate_values_valid = all(value is not None and np.isfinite(value) for value in climate_values.values())
+    climate_values_valid = climate_values_valid and climate_values["rainfall"] >= 0 and 0 <= climate_values["humidity"] <= 1
+    climate_status = "evaluated" if climate_values_valid else (
+        "not_evaluated" if all(value is None for value in climate_values.values()) else "invalid_or_incomplete"
+    )
+
+    if climate_values_valid:
         climate_available = True
         weather_data = {
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "latitude": 20.0,  # Default, would come from market lookup
-            "longitude": 78.0,
-            "temperature": request.features.get("temperature", 25.0),
-            "rainfall": request.features.get("rainfall", 0.0),
-            "humidity": request.features.get("humidity", 0.5),
-            "wind_speed": request.features.get("wind_speed", 5.0),
-            "is_heatwave": request.features.get("is_heatwave", False),
-            "is_coldwave": request.features.get("is_coldwave", False),
-            "is_heavy_rain": request.features.get("is_heavy_rain", False),
+            "temperature": climate_values["temperature"],
+            "rainfall": climate_values["rainfall"],
+            "humidity": climate_values["humidity"],
         }
+        for name in ("wind_speed", "is_heatwave", "is_coldwave", "is_heavy_rain"):
+            if request.features.get(name) is not None:
+                weather_data[name] = request.features[name]
         climate_detector = ClimateAnomalyDetector()
         climate_anomaly_result = climate_detector.detect(weather_data)
         climate_anomaly = climate_anomaly_result.score
     
     # Market data anomaly detection using MarketDataAnomalyDetector
-    market_data_anomaly = 0.0
+    market_data_anomaly: float | None = None
     market_data_anomaly_result = None
     
     # Extract market data from features
     modal_price = request.features.get("lag_1")  # Most recent price
     arrivals = request.features.get("arrival_lag_1")  # Most recent arrivals
     
-    if modal_price is not None:
+    if modal_price is not None or arrivals is not None:
         market_data = {
             "modal_price": modal_price,
-            "arrivals_tonnes": arrivals if arrivals is not None else 0.0,
+            "arrivals_tonnes": arrivals,
         }
         market_detector = MarketDataAnomalyDetector()
         market_data_anomaly_result = market_detector.detect(market_data, request.commodity)
@@ -159,7 +161,7 @@ def predict(request: PredictionRequest) -> dict:
     
     signals = Signals(
         model_uncertainty=float(artifact.get("model_uncertainty", 0.25)),
-        historical_failure_risk=float(historical_failure_risk),
+        historical_failure_risk=historical_failure_risk,
         novelty_score=novelty,
         drift_score=float(artifact.get("drift_score", 0.0)),
         missing_information=0.0,
@@ -173,11 +175,13 @@ def predict(request: PredictionRequest) -> dict:
     # Add anomaly detection details to response
     decision["anomaly_detection"] = {
         "climate_available": climate_available,
+        "climate_status": climate_status,
         "climate_anomaly": {
             "score": climate_anomaly,
             "severity": climate_anomaly_result.severity if climate_anomaly_result else None,
             "reason": climate_anomaly_result.reason if climate_anomaly_result else "Climate data not provided",
         } if climate_available else None,
+        "market_data_status": "evaluated" if market_data_anomaly_result else "not_evaluated",
         "market_data_anomaly": {
             "score": market_data_anomaly,
             "severity": market_data_anomaly_result.severity if market_data_anomaly_result else None,
@@ -215,7 +219,9 @@ def get_features(request: PredictionRequest) -> dict:
             with conn.cursor() as cur:
                 # Query historical data for the commodity/market/variety
                 cur.execute("""
-                    SELECT report_date, market, commodity, variety, modal_price, arrivals
+                    SELECT report_date, market, commodity, variety, modal_price, arrivals,
+                           temperature, rainfall, humidity, wind_speed,
+                           is_heatwave, is_coldwave, is_heavy_rain
                     FROM market_data
                     WHERE commodity = %s AND market = %s AND variety = %s
                     ORDER BY report_date DESC
@@ -230,12 +236,18 @@ def get_features(request: PredictionRequest) -> dict:
                     )
                 
                 # Convert to DataFrame
-                df = pd.DataFrame(rows, columns=["report_date", "market", "commodity", "variety", "modal_price", "arrivals"])
+                df = pd.DataFrame(rows, columns=[
+                    "report_date", "market", "commodity", "variety", "modal_price", "arrivals",
+                    "temperature", "rainfall", "humidity", "wind_speed",
+                    "is_heatwave", "is_coldwave", "is_heavy_rain",
+                ])
                 df["report_date"] = pd.to_datetime(df["report_date"])
                 df = df.sort_values("report_date").reset_index(drop=True)
                 
-                # Import feature engineering
-                from training.features import FEATURES, add_features
+                # Import feature engineering. Climate columns are returned only
+                # when they are present in the database row; never synthesize
+                # missing climate observations as zeroes.
+                from training.features import FEATURES_WITHOUT_CLIMATE, add_features
                 
                 # Add features
                 df_featured = add_features(df, request.horizon, is_training=False)
@@ -245,12 +257,18 @@ def get_features(request: PredictionRequest) -> dict:
                 
                 # Extract feature values
                 feature_dict = {}
-                for feat in FEATURES:
+                for feat in FEATURES_WITHOUT_CLIMATE:
                     val = latest_features.get(feat)
                     if pd.isna(val):
-                        feature_dict[feat] = 0.0
-                    else:
-                        feature_dict[feat] = float(val)
+                        raise HTTPException(status_code=422, detail=f"Required market feature is unavailable: {feat}")
+                    feature_dict[feat] = float(val)
+
+                climate_columns = ("temperature", "rainfall", "humidity")
+                if all(column in df.columns and pd.notna(latest_features.get(column)) for column in climate_columns):
+                    for column in ("temperature", "rainfall", "humidity", "wind_speed", "is_heatwave", "is_coldwave", "is_heavy_rain"):
+                        value = latest_features.get(column)
+                        if column in df.columns and pd.notna(value):
+                            feature_dict[column] = float(value)
                 
                 return {
                     "features": feature_dict,

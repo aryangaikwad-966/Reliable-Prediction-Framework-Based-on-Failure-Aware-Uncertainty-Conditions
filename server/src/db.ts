@@ -10,14 +10,17 @@ const predictions: PredictionRecord[] = [];
 const failures: FailureRecord[] = [];
 
 export function normalizeSignals(value: unknown) {
-  const signals = (value ?? {}) as Record<string, number>;
+  const signals = (value ?? {}) as Record<string, number | null>;
+  const read = (camel: string, snake: string) => camel in signals ? signals[camel] : snake in signals ? signals[snake] : 0;
   return {
-    modelUncertainty: signals.modelUncertainty ?? signals.model_uncertainty ?? 0,
-    historicalFailureRisk: signals.historicalFailureRisk ?? signals.historical_failure_risk ?? 0,
-    noveltyScore: signals.noveltyScore ?? signals.novelty_score ?? 0,
-    driftScore: signals.driftScore ?? signals.drift_score ?? 0,
-    missingInformation: signals.missingInformation ?? signals.missing_information ?? 0,
-    contextRisk: signals.contextRisk ?? signals.context_risk ?? 0,
+    modelUncertainty: read("modelUncertainty", "model_uncertainty"),
+    historicalFailureRisk: read("historicalFailureRisk", "historical_failure_risk"),
+    noveltyScore: read("noveltyScore", "novelty_score"),
+    driftScore: read("driftScore", "drift_score"),
+    missingInformation: read("missingInformation", "missing_information"),
+    contextRisk: read("contextRisk", "context_risk"),
+    climateAnomaly: read("climateAnomaly", "climate_anomaly"),
+    marketDataAnomaly: read("marketDataAnomaly", "market_data_anomaly"),
   };
 }
 

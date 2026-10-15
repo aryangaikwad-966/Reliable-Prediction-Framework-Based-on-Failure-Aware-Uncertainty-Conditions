@@ -3,11 +3,13 @@ export type Severity = "NORMAL" | "MODERATE" | "SIGNIFICANT" | "HIGH";
 
 export interface ReliabilitySignals {
   modelUncertainty: number;
-  historicalFailureRisk: number;
+  historicalFailureRisk: number | null;
   noveltyScore: number;
-  driftScore: number;
+  driftScore: number | null;
   missingInformation: number;
   contextRisk: number;
+  climateAnomaly?: number | null;
+  marketDataAnomaly?: number | null;
 }
 
 export interface PredictionRecord {
@@ -42,7 +44,7 @@ export interface FailureRecord {
   severity: Severity;
   reliability: number;
   noveltyScore: number;
-  driftScore: number;
+  driftScore: number | null;
   context: Record<string, string | number | boolean | null>;
 }
 
@@ -54,7 +56,7 @@ function clamp(value: number) {
 }
 
 export function calculateRisk(signals: ReliabilitySignals) {
-  const weights: ReliabilitySignals = {
+  const weights: Record<"modelUncertainty" | "historicalFailureRisk" | "noveltyScore" | "driftScore" | "missingInformation" | "contextRisk", number> = {
     modelUncertainty: 0.24,
     historicalFailureRisk: 0.22,
     noveltyScore: 0.18,
@@ -62,10 +64,10 @@ export function calculateRisk(signals: ReliabilitySignals) {
     missingInformation: 0.1,
     contextRisk: 0.1,
   };
-  const risk = Object.keys(weights).reduce((total, key) => {
-    const name = key as keyof ReliabilitySignals;
-    return total + weights[name] * clamp(signals[name]);
-  }, 0);
+  const entries = Object.entries(weights).filter(([name]) => signals[name as keyof typeof weights] != null);
+  const totalWeight = entries.reduce((total, [, weight]) => total + weight, 0);
+  if (!totalWeight) return 0;
+  const risk = entries.reduce((total, [name, weight]) => total + weight * clamp(signals[name as keyof typeof weights] as number), 0) / totalWeight;
   return Number(clamp(risk).toFixed(10));
 }
 
@@ -96,7 +98,8 @@ export function buildDecision(
   const reasons: string[] = [];
   const reasonCodes: string[] = [decision === "ACCEPTED" ? "RELIABILITY_AT_OR_ABOVE_THRESHOLD" : "RELIABILITY_BELOW_THRESHOLD"];
   for (const rule of SIGNAL_RULES) {
-    if (signals[rule.signal] >= rule.minimum) {
+    const value = signals[rule.signal];
+    if (value != null && value >= rule.minimum) {
       reasons.push(rule.reason);
       reasonCodes.push(rule.code);
     }

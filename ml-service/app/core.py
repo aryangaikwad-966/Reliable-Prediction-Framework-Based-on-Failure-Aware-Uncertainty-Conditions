@@ -7,13 +7,13 @@ from typing import Iterable
 @dataclass
 class Signals:
     model_uncertainty: float
-    historical_failure_risk: float
+    historical_failure_risk: float | None
     novelty_score: float
-    drift_score: float
+    drift_score: float | None
     missing_information: float
     context_risk: float
-    climate_anomaly: float = 0.0
-    market_data_anomaly: float = 0.0
+    climate_anomaly: float | None = None
+    market_data_anomaly: float | None = None
 
 
 def clamp(value: float) -> float:
@@ -31,9 +31,19 @@ def failure_risk(signals: Signals) -> float:
         "climate_anomaly": 0.10,
         "market_data_anomaly": 0.05,
     }
-    # Keep the API boundary deterministic (and aligned with the Node service)
-    # when decimal weights sum to a value infinitesimally below one.
-    return round(clamp(sum(weights[key] * clamp(getattr(signals, key)) for key in weights)), 10)
+    # Optional signals are not equivalent to a zero-risk signal. Exclude them
+    # from the weighted average and normalize over signals actually evaluated.
+    # This keeps missing climate/history inputs explicit without allowing them
+    # to silently reduce the calculated risk.
+    available = {
+        key: clamp(value)
+        for key, weight in weights.items()
+        if (value := getattr(signals, key)) is not None
+    }
+    total_weight = sum(weights[key] for key in available)
+    if not total_weight:
+        return 0.0
+    return round(clamp(sum(weights[key] * value for key, value in available.items()) / total_weight), 10)
 
 
 def selective_decision(base_prediction: float, signals: Signals, threshold: float = 0.70) -> dict:
@@ -49,11 +59,12 @@ def selective_decision(base_prediction: float, signals: Signals, threshold: floa
         ("drift_score", 0.55, "Recent behavior indicates distribution drift", "DRIFT_SCORE_ELEVATED"),
         ("missing_information", 0.40, "Important external context is unavailable", "MISSING_INFORMATION_ELEVATED"),
         ("context_risk", 0.55, "Contextual risk is elevated", "CONTEXT_RISK_ELEVATED"),
-        ("climate_anomaly", 0.50, "Unusual weather conditions detected", "CLIMATE_ANOMALY_ELEVATED"),
+        ("climate_anomaly", 0.50, "Climate anomaly detected: unusual weather conditions", "CLIMATE_ANOMALY_ELEVATED"),
         ("market_data_anomaly", 0.60, "Market data quality issues detected", "MARKET_DATA_ANOMALY_ELEVATED"),
     )
     for field, limit, reason, code in labels:
-        if getattr(signals, field) >= limit:
+        value = getattr(signals, field)
+        if value is not None and value >= limit:
             reasons.append(reason)
             reason_codes.append(code)
     return {

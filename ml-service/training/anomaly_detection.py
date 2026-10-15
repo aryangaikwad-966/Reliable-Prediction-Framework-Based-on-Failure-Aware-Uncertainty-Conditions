@@ -92,24 +92,31 @@ class ClimateAnomalyDetector:
         Returns:
             AnomalyResult with climate anomaly information
         """
-        date = pd.to_datetime(current_weather["date"])
-        month = date.month
-        lat = current_weather["latitude"]
+        date_value = current_weather.get("date")
+        date = pd.to_datetime(date_value) if date_value is not None else None
+        month = date.month if date is not None and not pd.isna(date) else None
+        lat = current_weather.get("latitude")
         
         # Determine latitude zone
-        if lat > 20:
+        if lat is None:
+            zone = None
+        elif lat > 20:
             zone = "north"
         elif lat > 15:
             zone = "central"
         else:
             zone = "south"
         
-        key = f"{month}_{zone}"
-        stats = self.baseline_stats.get(key)
+        key = f"{month}_{zone}" if month is not None and zone is not None else None
+        stats = self.baseline_stats.get(key) if key else None
         
         # Compute anomaly scores
         scores = []
         evidence = {}
+
+        temp_anomaly = 0.0
+        rain_anomaly = 0.0
+        humid_anomaly = 0.0
         
         # Temperature anomaly
         temp = current_weather["temperature"]
@@ -269,7 +276,10 @@ class MarketDataAnomalyDetector:
         
         # Price anomaly
         price = current_data.get("modal_price")
-        if price and price > 0:
+        price_anomaly = 0.0
+        arrival_anomaly = 0.0
+        price_is_valid = isinstance(price, (int, float, np.number)) and np.isfinite(price) and price > 0
+        if price_is_valid:
             stats = self.price_stats.get(commodity)
             if stats and stats["std"] > 0:
                 price_z = abs(price - stats["mean"]) / stats["std"]
@@ -288,7 +298,8 @@ class MarketDataAnomalyDetector:
         
         # Arrival anomaly
         arrivals = current_data.get("arrivals_tonnes")
-        if arrivals is not None and arrivals >= 0:
+        arrivals_is_valid = isinstance(arrivals, (int, float, np.number)) and np.isfinite(arrivals) and arrivals >= 0
+        if arrivals_is_valid:
             stats = self.arrival_stats
             if stats and stats["std"] > 0:
                 arrival_z = abs(arrivals - stats["mean"]) / stats["std"]
@@ -302,8 +313,21 @@ class MarketDataAnomalyDetector:
             evidence["arrival_anomaly_score"] = arrival_anomaly
             evidence["arrival_value"] = arrivals
         
-        # Quality flag anomalies
+        # Missing or invalid values are explicit data-quality anomalies. They
+        # must not be replaced by normal-looking defaults.
         quality_anomalies = []
+        if price is None:
+            quality_anomalies.append("missing_price")
+            scores.append(0.6)
+        elif not isinstance(price, (int, float, np.number)) or not np.isfinite(price) or price < 0:
+            quality_anomalies.append("invalid_price")
+            scores.append(0.9)
+        if arrivals is None:
+            quality_anomalies.append("missing_arrivals")
+            scores.append(0.6)
+        elif not isinstance(arrivals, (int, float, np.number)) or not np.isfinite(arrivals) or arrivals < 0:
+            quality_anomalies.append("invalid_arrivals")
+            scores.append(0.8)
         if quality_flags:
             if quality_flags.get("quality_invalid_price", False):
                 quality_anomalies.append("invalid_price")

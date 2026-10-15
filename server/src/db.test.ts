@@ -10,12 +10,21 @@ describe("stored prediction signal compatibility", () => {
       driftScore: 0.3,
       missingInformation: 0.05,
       contextRisk: 0.2,
+      climateAnomaly: 0,
+      marketDataAnomaly: 0,
     });
   });
 
   it("normalizes legacy stored reason arrays before returning them to the UI", () => {
     expect(normalizeReasons('["Model uncertainty is elevated"]')).toEqual(["Model uncertainty is elevated"]);
     expect(normalizeReasons("not-json")).toEqual([]);
+  });
+
+  it("preserves explicitly unavailable signals instead of converting them to zero", () => {
+    expect(normalizeSignals({ historical_failure_risk: null, climate_anomaly: null })).toMatchObject({
+      historicalFailureRisk: null,
+      climateAnomaly: null,
+    });
   });
 
   it("preserves current reason messages and codes in the stored decision evidence", () => {

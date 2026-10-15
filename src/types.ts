@@ -14,13 +14,13 @@ export interface Prediction {
   isDemo?: boolean;
   signals?: {
     modelUncertainty: number;
-    historicalFailureRisk: number;
+    historicalFailureRisk: number | null;
     noveltyScore: number;
-    driftScore: number;
+    driftScore: number | null;
     missingInformation: number;
     contextRisk: number;
-    climateAnomaly?: number;
-    marketDataAnomaly?: number;
+    climateAnomaly?: number | null;
+    marketDataAnomaly?: number | null;
   };
   reasons?: string[];
   reasonCodes?: string[];
@@ -59,7 +59,7 @@ export interface FailureCase {
   severity: "NORMAL" | "MODERATE" | "SIGNIFICANT" | "HIGH";
   reliability: number;
   noveltyScore: number;
-  driftScore: number;
+  driftScore: number | null;
   context: Record<string, string | number | boolean | null>;
 }
 
@@ -114,9 +114,9 @@ export interface ReliabilityItem {
 export interface UncertaintyItem {
   id: string;
   modelUncertainty: number;
-  historicalFailureRisk: number;
+  historicalFailureRisk: number | null;
   noveltyScore: number;
-  driftScore: number;
+  driftScore: number | null;
   missingInformation: number;
   contextRisk: number;
 }

@@ -1,6 +1,6 @@
 import type { Decision } from "./types";
 
-type ReliabilitySignals = { modelUncertainty: number; historicalFailureRisk: number; noveltyScore: number; driftScore: number; missingInformation: number; contextRisk: number };
+type ReliabilitySignals = { modelUncertainty: number | null; historicalFailureRisk: number | null; noveltyScore: number | null; driftScore: number | null; missingInformation: number | null; contextRisk: number | null; climateAnomaly?: number | null; marketDataAnomaly?: number | null };
 
 export type DecisionResponse = { decision: Decision; prediction: number | null | undefined; failureRisk?: number; reliability?: number; reasons?: unknown; reasonCodes?: unknown; error?: string; signals?: Partial<ReliabilitySignals> };
 export type EvidenceItem = { label: string; value: string; available: boolean };
@@ -21,13 +21,16 @@ const verifiedReasons: Record<string, ReasonDefinition> = {
   "Recent behavior indicates distribution drift":         { text: "Recent behavior indicates distribution drift.",         signal: "driftScore",             minimum: 0.55, code: "DRIFT_SCORE_ELEVATED" },
   "Important external context is unavailable":            { text: "Important external context is unavailable.",            signal: "missingInformation",     minimum: 0.4,  code: "MISSING_INFORMATION_ELEVATED" },
   "Contextual risk is elevated":                          { text: "Contextual risk is elevated.",                          signal: "contextRisk",            minimum: 0.55, code: "CONTEXT_RISK_ELEVATED" },
+  "Climate anomaly detected: unusual weather conditions": { text: "Climate anomaly detected: unusual weather conditions.", signal: "climateAnomaly", minimum: 0.50, code: "CLIMATE_ANOMALY_ELEVATED" },
+  "Unusual weather conditions detected":                  { text: "Climate anomaly detected: unusual weather conditions.", signal: "climateAnomaly", minimum: 0.50, code: "CLIMATE_ANOMALY_ELEVATED" },
+  "Market data quality issues detected":                  { text: "Market data quality issues detected.",                  signal: "marketDataAnomaly", minimum: 0.60, code: "MARKET_DATA_ANOMALY_ELEVATED" },
 };
 
 /** Canonical reason-code-to-definition map (for code-first lookups). */
 const codeToDefinition: Record<string, ReasonDefinition> = {};
 for (const def of Object.values(verifiedReasons)) codeToDefinition[def.code] = def;
 
-const signalLabels: Record<keyof ReliabilitySignals, string> = { modelUncertainty: "Model uncertainty signal", historicalFailureRisk: "Historical failure-risk signal", noveltyScore: "Novelty signal", driftScore: "Drift signal", missingInformation: "Missing-information signal", contextRisk: "Context-risk signal" };
+const signalLabels: Record<keyof ReliabilitySignals, string> = { modelUncertainty: "Model uncertainty signal", historicalFailureRisk: "Historical failure-risk signal", noveltyScore: "Novelty signal", driftScore: "Drift signal", missingInformation: "Missing-information signal", contextRisk: "Context-risk signal", climateAnomaly: "Climate anomaly signal", marketDataAnomaly: "Market-data anomaly signal" };
 const unavailable = "Not returned by the API";
 const templates = {
   accepted: {

@@ -34,11 +34,13 @@ type MlDecisionResponse = {
   reason_codes?: string[];
   signals: {
     model_uncertainty: number;
-    historical_failure_risk: number;
+    historical_failure_risk: number | null;
     novelty_score: number;
-    drift_score: number;
+    drift_score: number | null;
     missing_information: number;
     context_risk: number;
+    climate_anomaly?: number | null;
+    market_data_anomaly?: number | null;
   };
 };
 
@@ -50,6 +52,8 @@ function recordMlDecision(value: MlDecisionResponse, context: z.infer<typeof pre
     driftScore: value.signals.drift_score,
     missingInformation: value.signals.missing_information,
     contextRisk: value.signals.context_risk,
+    climateAnomaly: value.signals.climate_anomaly ?? null,
+    marketDataAnomaly: value.signals.market_data_anomaly ?? null,
   };
   return {
     id: `pred_${Date.now()}_${Math.floor(value.base_prediction)}`,
@@ -515,7 +519,7 @@ app.post("/api/outcomes", async (req, res, next) => {
     const base = prediction.prediction ?? prediction.basePrediction;
     const absoluteError = Math.abs(input.actual - base);
     const relativeError = input.actual === 0 ? absoluteError : absoluteError / Math.abs(input.actual);
-    const failure: FailureRecord = { id: `failure_${Date.now()}`, predictionId: prediction.id, date: new Date().toISOString(), commodity: prediction.commodity, market: prediction.market, variety: prediction.variety, prediction: prediction.prediction, actual: input.actual, absoluteError: Number(absoluteError.toFixed(4)), relativeError: Number(relativeError.toFixed(4)), severity: classifyFailure(absoluteError, relativeError), reliability: prediction.reliability, noveltyScore: prediction.signals.noveltyScore, driftScore: prediction.signals.driftScore, context: { origin: "observed_outcome", threshold: DEFAULT_FAILURE_THRESHOLD } };
+    const failure: FailureRecord = { id: `failure_${Date.now()}`, predictionId: prediction.id, date: new Date().toISOString(), commodity: prediction.commodity, market: prediction.market, variety: prediction.variety, prediction: prediction.prediction, actual: input.actual, absoluteError: Number(absoluteError.toFixed(4)), relativeError: Number(relativeError.toFixed(4)), severity: classifyFailure(absoluteError, relativeError), reliability: prediction.reliability, noveltyScore: prediction.signals.noveltyScore, driftScore: prediction.signals.driftScore ?? null, context: { origin: "observed_outcome", threshold: DEFAULT_FAILURE_THRESHOLD } };
     await saveFailure(failure);
     return res.status(201).json(failure);
   } catch (error) {
