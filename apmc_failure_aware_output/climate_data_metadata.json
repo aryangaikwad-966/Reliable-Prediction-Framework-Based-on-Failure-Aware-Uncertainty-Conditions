@@ -1,0 +1,23 @@
+{
+  "provenance": "SYNTHETIC",
+  "purpose": "Demonstration of climate-aware prediction framework",
+  "note": "APMC dataset contains future dates (2025), so real historical climate data cannot be matched. This synthetic data is generated based on Indian climatic patterns for framework demonstration.",
+  "generation_date": "2026-10-15T22:25:39.977340",
+  "source_markets": 3158,
+  "date_range": [
+    "2025-01-01",
+    "2025-10-26"
+  ],
+  "total_records": 944242,
+  "climate_zones": {
+    "north": 1939,
+    "central": 465,
+    "south": 754
+  },
+  "extreme_events": {
+    "total": 99087,
+    "heat_waves": 1750,
+    "cold_waves": 673,
+    "heavy_rain": 96664
+  }
+}

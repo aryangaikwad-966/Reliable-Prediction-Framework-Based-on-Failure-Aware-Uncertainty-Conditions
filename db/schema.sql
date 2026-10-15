@@ -37,7 +37,16 @@ create table if not exists market_data (
   max_price numeric,
   modal_price numeric,
   source_row bigint,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- Climate columns (optional, populated if climate data is integrated)
+  temperature numeric,
+  rainfall numeric,
+  humidity numeric,
+  wind_speed numeric,
+  is_heatwave boolean default false,
+  is_coldwave boolean default false,
+  is_heavy_rain boolean default false,
+  is_extreme_event boolean default false
 );
 
 create index if not exists market_data_date_idx on market_data(report_date);

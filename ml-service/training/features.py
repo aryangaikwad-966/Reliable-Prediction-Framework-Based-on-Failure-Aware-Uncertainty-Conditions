@@ -10,6 +10,19 @@ FEATURES = [
     "price_volatility", "arrival_lag_1", "arrival_lag_7",
     "rolling_arrival_mean", "arrival_change", "day_of_week", "day_of_month",
     "month", "week_of_year",
+    # Climate features (optional, added if available)
+    "temperature", "rainfall", "humidity", "wind_speed",
+    "is_heatwave", "is_heavy_rain",
+]
+
+# Features without climate (for backward compatibility)
+FEATURES_WITHOUT_CLIMATE = [
+    "lag_1", "lag_2", "lag_3", "lag_7", "lag_14", "lag_30",
+    "rolling_mean_7", "rolling_mean_14", "rolling_mean_30",
+    "rolling_std_7", "rolling_std_30", "price_change_1", "price_change_7",
+    "price_volatility", "arrival_lag_1", "arrival_lag_7",
+    "rolling_arrival_mean", "arrival_change", "day_of_week", "day_of_month",
+    "month", "week_of_year",
 ]
 
 
@@ -61,7 +74,7 @@ def normalize_columns(frame: pd.DataFrame) -> pd.DataFrame:
     return frame
 
 
-def add_features(frame: pd.DataFrame, horizon: int = 7, is_training: bool = True) -> pd.DataFrame:
+def add_features(frame: pd.DataFrame, horizon: int = 7, is_training: bool = True, use_climate: bool = False) -> pd.DataFrame:
     frame = frame.sort_values(["market", "commodity", "variety", "report_date"]).copy()
     group = frame.groupby(["market", "commodity", "variety"], group_keys=False)
     for lag in [1, 2, 3, 7, 14, 30]:
@@ -82,5 +95,25 @@ def add_features(frame: pd.DataFrame, horizon: int = 7, is_training: bool = True
     frame["month"] = frame["report_date"].dt.month
     frame["week_of_year"] = frame["report_date"].dt.isocalendar().week.astype(int)
     frame["target"] = group["modal_price"].shift(-horizon)
-    subset = FEATURES + ["target"] if is_training else FEATURES
+    
+    # Handle climate features if available
+    if use_climate:
+        # Fill missing climate data with sensible defaults
+        # This explicitly handles missing climate rather than treating it as normal
+        if "temperature" in frame.columns:
+            frame["temperature"] = frame["temperature"].fillna(25.0)  # Moderate temperature
+        if "rainfall" in frame.columns:
+            frame["rainfall"] = frame["rainfall"].fillna(0.0)  # No rain
+        if "humidity" in frame.columns:
+            frame["humidity"] = frame["humidity"].fillna(0.5)  # Moderate humidity
+        if "wind_speed" in frame.columns:
+            frame["wind_speed"] = frame["wind_speed"].fillna(5.0)  # Light wind
+        if "is_heatwave" in frame.columns:
+            frame["is_heatwave"] = frame["is_heatwave"].fillna(False).astype(int)
+        if "is_heavy_rain" in frame.columns:
+            frame["is_heavy_rain"] = frame["is_heavy_rain"].fillna(False).astype(int)
+    
+    # Select features based on climate flag
+    active_features = FEATURES if use_climate else FEATURES_WITHOUT_CLIMATE
+    subset = active_features + ["target"] if is_training else active_features
     return frame.replace([float("inf"), float("-inf")], pd.NA).dropna(subset=subset)

@@ -1,0 +1,39 @@
+{
+  "evaluation_date": "2026-10-15T22:28:51.810547",
+  "data_source": "/Users/aryangaikwad/Desktop/Reliable-Prediction-Framework-Based-on-Failure-Aware-Uncertainty-Conditions/apmc_failure_aware_output/apmc_climate_enriched.csv",
+  "commodity": "Onion",
+  "train_samples": 97940,
+  "val_samples": 30584,
+  "test_samples": 30791,
+  "persistence_baseline": {
+    "mae": 122.08908447273554,
+    "rmse": 277.70018832514944
+  },
+  "baseline_no_climate": {
+    "val_mae": 144.26154358371002,
+    "val_rmse": 271.41576385263505,
+    "val_r2": 0.8942563415400872,
+    "test_mae": 157.8612449247624,
+    "test_rmse": 251.3504137130326,
+    "test_r2": 0.9034867946230336,
+    "feature_count": 37
+  },
+  "climate_enhanced": {
+    "val_mae": 146.16209514820798,
+    "val_rmse": 276.48980298343196,
+    "val_r2": 0.8902656907916006,
+    "test_mae": 159.76347060476098,
+    "test_rmse": 252.86497384076372,
+    "test_r2": 0.902320172667605,
+    "feature_count": 43
+  },
+  "mae_improvement_percent": -1.2049985295030494,
+  "climate_features": [
+    "temperature",
+    "rainfall",
+    "humidity",
+    "wind_speed",
+    "is_heatwave",
+    "is_heavy_rain"
+  ]
+}

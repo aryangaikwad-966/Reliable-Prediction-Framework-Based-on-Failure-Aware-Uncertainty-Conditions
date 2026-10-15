@@ -12,7 +12,7 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from xgboost import XGBRegressor
 
-from training.features import FEATURES, add_features, normalize_columns
+from training.features import FEATURES, FEATURES_WITHOUT_CLIMATE, add_features, normalize_columns
 
 
 def read_dataset(path: str, commodity: str, market: Optional[str] = None) -> pd.DataFrame:
@@ -29,16 +29,20 @@ def read_dataset(path: str, commodity: str, market: Optional[str] = None) -> pd.
     return pd.concat(chunks, ignore_index=True)
 
 
-def train_model(data_path: str, commodity: str, market: Optional[str], horizon: int, test_fraction: float, model_dir: Path) -> dict:
-    frame = add_features(read_dataset(data_path, commodity, market), horizon)
+def train_model(data_path: str, commodity: str, market: Optional[str], horizon: int, test_fraction: float, model_dir: Path, use_climate: bool = False) -> dict:
+    frame = add_features(read_dataset(data_path, commodity, market), horizon, use_climate=use_climate)
     frame = frame.sort_values("report_date")
     split = max(1, int(len(frame) * (1 - test_fraction)))
     train, test = frame.iloc[:split], frame.iloc[split:]
     if len(train) < 20 or len(test) < 1:
         raise ValueError("Not enough chronological observations after feature engineering.")
+    
+    # Select features based on climate flag
+    active_features = FEATURES if use_climate else FEATURES_WITHOUT_CLIMATE
+    
     model = XGBRegressor(n_estimators=250, max_depth=5, learning_rate=0.05, subsample=0.85, colsample_bytree=0.85, objective="reg:squarederror", random_state=42)
-    model.fit(train[FEATURES], train["target"])
-    predictions = model.predict(test[FEATURES])
+    model.fit(train[active_features], train["target"])
+    predictions = model.predict(test[active_features])
     metrics = {
         "mae": float(mean_absolute_error(test["target"], predictions)),
         "rmse": float(mean_squared_error(test["target"], predictions) ** 0.5),
@@ -52,17 +56,20 @@ def train_model(data_path: str, commodity: str, market: Optional[str], horizon: 
     model_dir.mkdir(parents=True, exist_ok=True)
     artifact = {
         "model": model,
-        "features": FEATURES,
-        "feature_means": train[FEATURES].mean().astype(float).tolist(),
-        "feature_scales": train[FEATURES].std().replace(0, 1).astype(float).tolist(),
+        "features": active_features,
+        "use_climate": use_climate,
+        "feature_means": train[active_features].mean().astype(float).tolist(),
+        "feature_scales": train[active_features].std().replace(0, 1).astype(float).tolist(),
         "model_uncertainty": float(np.std(test["target"].to_numpy() - predictions) / max(np.mean(test["target"]), 1)),
         "metrics": metrics,
         "metadata": {"commodity": commodity, "market": market, "horizon": horizon, "trained_at": datetime.now(timezone.utc).isoformat()},
     }
     version = f"{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{commodity.lower()}"
+    if use_climate:
+        version += "-climate"
     joblib.dump(artifact, model_dir / f"{version}.joblib")
     joblib.dump(artifact, model_dir / "latest.joblib")
-    (model_dir / f"{version}.json").write_text(json.dumps({**metrics, **artifact["metadata"], "version": version}, indent=2))
+    (model_dir / f"{version}.json").write_text(json.dumps({**metrics, **artifact["metadata"], "version": version, "use_climate": use_climate}, indent=2))
     return {"status": "TRAINED", "version": version, "artifact": str(model_dir / f"{version}.joblib"), "metrics": metrics}
 
 
@@ -74,5 +81,6 @@ if __name__ == "__main__":
     parser.add_argument("--horizon", type=int, default=7)
     parser.add_argument("--test-fraction", type=float, default=0.2)
     parser.add_argument("--model-dir", default="./models")
+    parser.add_argument("--use-climate", action="store_true", help="Include climate features in training")
     args = parser.parse_args()
-    print(json.dumps(train_model(args.data, args.commodity, args.market, args.horizon, args.test_fraction, Path(args.model_dir)), indent=2))
+    print(json.dumps(train_model(args.data, args.commodity, args.market, args.horizon, args.test_fraction, Path(args.model_dir), args.use_climate), indent=2))

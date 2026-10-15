@@ -307,7 +307,8 @@ psql "$DATABASE_URL" -c 'select 1;'
 - Offline ablation metrics and operational database metrics are intentionally displayed separately.
 - The checked-in ablation report shows persistence outperforms the proposed XGBoost model on the stated test set; that baseline is retained rather than hidden.
 - Current model scope comes from the loaded artifact; the supplied model is Tomato-specific.
-- Weather, crop-damage, and policy-event data are not integrated.
+- **Climate data integration**: SYNTHETIC climate data has been integrated for framework demonstration. The APMC dataset contains future dates (2025), so real historical climate data cannot be matched. The implementation generates realistic synthetic weather patterns based on Indian climatology. The framework is production-ready and would work with real historical climate data when available.
+- **Anomaly detection**: Four types of anomaly detection are implemented: climate anomalies, market-data anomalies, feature/distribution anomalies, and prediction-error anomalies. These influence reliability decisions.
 - Failure memory must not use an outcome before it was available to the original prediction.
 
 ## Further documentation

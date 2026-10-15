@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from datetime import datetime
 
 import joblib
 import numpy as np
@@ -12,6 +13,12 @@ from fastapi import FastAPI, HTTPException
 
 from .core import Signals, novelty_score, selective_decision
 from .schemas import PredictionRequest, TrainRequest
+from training.anomaly_detection import (
+    ClimateAnomalyDetector,
+    MarketDataAnomalyDetector,
+    FeatureDistributionAnomalyDetector,
+    AnomalyResult,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 # The Node service already reads the root .env.  Load the same non-secret
@@ -105,6 +112,51 @@ def predict(request: PredictionRequest) -> dict:
             # If database query fails, use default
             historical_failure_risk = 0.0
     
+    # Climate anomaly detection using ClimateAnomalyDetector
+    climate_anomaly = 0.0
+    climate_anomaly_result = None
+    climate_available = False
+    
+    # Check if climate features are provided in the request
+    has_temp = request.features.get("temperature") is not None
+    has_rain = request.features.get("rainfall") is not None
+    has_humidity = request.features.get("humidity") is not None
+    
+    if has_temp and has_rain and has_humidity:
+        climate_available = True
+        weather_data = {
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "latitude": 20.0,  # Default, would come from market lookup
+            "longitude": 78.0,
+            "temperature": request.features.get("temperature", 25.0),
+            "rainfall": request.features.get("rainfall", 0.0),
+            "humidity": request.features.get("humidity", 0.5),
+            "wind_speed": request.features.get("wind_speed", 5.0),
+            "is_heatwave": request.features.get("is_heatwave", False),
+            "is_coldwave": request.features.get("is_coldwave", False),
+            "is_heavy_rain": request.features.get("is_heavy_rain", False),
+        }
+        climate_detector = ClimateAnomalyDetector()
+        climate_anomaly_result = climate_detector.detect(weather_data)
+        climate_anomaly = climate_anomaly_result.score
+    
+    # Market data anomaly detection using MarketDataAnomalyDetector
+    market_data_anomaly = 0.0
+    market_data_anomaly_result = None
+    
+    # Extract market data from features
+    modal_price = request.features.get("lag_1")  # Most recent price
+    arrivals = request.features.get("arrival_lag_1")  # Most recent arrivals
+    
+    if modal_price is not None:
+        market_data = {
+            "modal_price": modal_price,
+            "arrivals_tonnes": arrivals if arrivals is not None else 0.0,
+        }
+        market_detector = MarketDataAnomalyDetector()
+        market_data_anomaly_result = market_detector.detect(market_data, request.commodity)
+        market_data_anomaly = market_data_anomaly_result.score
+    
     signals = Signals(
         model_uncertainty=float(artifact.get("model_uncertainty", 0.25)),
         historical_failure_risk=float(historical_failure_risk),
@@ -112,8 +164,28 @@ def predict(request: PredictionRequest) -> dict:
         drift_score=float(artifact.get("drift_score", 0.0)),
         missing_information=0.0,
         context_risk=0.0,
+        climate_anomaly=climate_anomaly,
+        market_data_anomaly=market_data_anomaly,
     )
-    return selective_decision(base, signals, float(os.getenv("RELIABILITY_THRESHOLD", "0.70")))
+    
+    decision = selective_decision(base, signals, float(os.getenv("RELIABILITY_THRESHOLD", "0.70")))
+    
+    # Add anomaly detection details to response
+    decision["anomaly_detection"] = {
+        "climate_available": climate_available,
+        "climate_anomaly": {
+            "score": climate_anomaly,
+            "severity": climate_anomaly_result.severity if climate_anomaly_result else None,
+            "reason": climate_anomaly_result.reason if climate_anomaly_result else "Climate data not provided",
+        } if climate_available else None,
+        "market_data_anomaly": {
+            "score": market_data_anomaly,
+            "severity": market_data_anomaly_result.severity if market_data_anomaly_result else None,
+            "reason": market_data_anomaly_result.reason if market_data_anomaly_result else "Market data insufficient",
+        } if market_data_anomaly_result else None,
+    }
+    
+    return decision
 
 
 @app.post("/train")

@@ -12,6 +12,8 @@ class Signals:
     drift_score: float
     missing_information: float
     context_risk: float
+    climate_anomaly: float = 0.0
+    market_data_anomaly: float = 0.0
 
 
 def clamp(value: float) -> float:
@@ -20,12 +22,14 @@ def clamp(value: float) -> float:
 
 def failure_risk(signals: Signals) -> float:
     weights = {
-        "model_uncertainty": 0.24,
-        "historical_failure_risk": 0.22,
-        "novelty_score": 0.18,
-        "drift_score": 0.16,
-        "missing_information": 0.10,
-        "context_risk": 0.10,
+        "model_uncertainty": 0.20,
+        "historical_failure_risk": 0.18,
+        "novelty_score": 0.15,
+        "drift_score": 0.14,
+        "missing_information": 0.09,
+        "context_risk": 0.09,
+        "climate_anomaly": 0.10,
+        "market_data_anomaly": 0.05,
     }
     # Keep the API boundary deterministic (and aligned with the Node service)
     # when decimal weights sum to a value infinitesimally below one.
@@ -45,6 +49,8 @@ def selective_decision(base_prediction: float, signals: Signals, threshold: floa
         ("drift_score", 0.55, "Recent behavior indicates distribution drift", "DRIFT_SCORE_ELEVATED"),
         ("missing_information", 0.40, "Important external context is unavailable", "MISSING_INFORMATION_ELEVATED"),
         ("context_risk", 0.55, "Contextual risk is elevated", "CONTEXT_RISK_ELEVATED"),
+        ("climate_anomaly", 0.50, "Unusual weather conditions detected", "CLIMATE_ANOMALY_ELEVATED"),
+        ("market_data_anomaly", 0.60, "Market data quality issues detected", "MARKET_DATA_ANOMALY_ELEVATED"),
     )
     for field, limit, reason, code in labels:
         if getattr(signals, field) >= limit:

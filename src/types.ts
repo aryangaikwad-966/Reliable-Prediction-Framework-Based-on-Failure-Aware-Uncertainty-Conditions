@@ -19,6 +19,8 @@ export interface Prediction {
     driftScore: number;
     missingInformation: number;
     contextRisk: number;
+    climateAnomaly?: number;
+    marketDataAnomaly?: number;
   };
   reasons?: string[];
   reasonCodes?: string[];
@@ -144,4 +146,7 @@ export interface Experiment {
 export interface DataSummary {
   recordCount: number | null;
   dateRange: { from: string; to: string } | null;
+  climateIntegrated: boolean;
+  climateSource?: string;
+  climateCoverage?: number;
 }

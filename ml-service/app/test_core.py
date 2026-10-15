@@ -2,7 +2,7 @@ from app.core import Signals, failure_risk, novelty_score, rolling_drift_score, 
 
 
 def test_risk_is_bounded():
-    signals = Signals(1, 1, 1, 1, 1, 1)
+    signals = Signals(1, 1, 1, 1, 1, 1, 1, 1)
     assert failure_risk(signals) == 1.0
 
 

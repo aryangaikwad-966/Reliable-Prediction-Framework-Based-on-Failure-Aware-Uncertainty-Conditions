@@ -162,10 +162,19 @@ export async function saveOutcome(predictionId: string, actual: number, observed
 }
 
 export async function getDatabaseSummary() {
-  if (!pool) return { recordCount: null, dateRange: null };
+  if (!pool) return { recordCount: null, dateRange: null, climateIntegrated: false };
   const result = await pool.query("select count(*)::int as count, min(report_date) as min_date, max(report_date) as max_date from market_data");
   const row = result.rows[0];
-  return { recordCount: row?.count ?? 0, dateRange: row?.min_date && row?.max_date ? { from: row.min_date, to: row.max_date } : null };
+  // Climate data is in the enriched CSV but not imported into market_data table
+  // The climate features are only used in training/inference when explicitly enabled
+  const climateIntegrated = false;
+  return {
+    recordCount: row?.count ?? 0,
+    dateRange: row?.min_date && row?.max_date ? { from: row.min_date, to: row.max_date } : null,
+    climateIntegrated,
+    climateSource: "SYNTHETIC",
+    climateCoverage: null
+  };
 }
 
 export function clearMemory() {

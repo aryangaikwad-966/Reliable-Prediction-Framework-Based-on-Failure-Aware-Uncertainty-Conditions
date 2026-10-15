@@ -2,8 +2,8 @@
 
 :root {
     font-family: Manrope, system-ui, sans-serif;
-    color: #e9f0f8;
-    background: #07111f;
+    color: #1a1a2e;
+    background: #ffffff;
     font-synthesis: none;
     text-rendering: optimizeLegibility
 }
@@ -15,7 +15,7 @@
 body {
     margin: 0;
     min-width: 320px;
-    background: #07111f
+    background: #f8f9fa
 }
 
 button,
@@ -31,15 +31,15 @@ button {
 .app-shell {
     min-height: 100vh;
     display: flex;
-    background: #07111f
+    background: #f8f9fa
 }
 
 .sidebar {
     width: 258px;
     min-height: 100vh;
     flex: 0 0 258px;
-    background: #0a1727;
-    border-right: 1px solid #182a3e;
+    background: #ffffff;
+    border-right: 1px solid #e5e7eb;
     display: flex;
     flex-direction: column;
     padding: 22px 14px;
@@ -58,22 +58,23 @@ button {
     height: 34px;
     width: 34px;
     border-radius: 10px;
-    background: #2454b7;
+    background: #2563eb;
     display: grid;
     place-items: center;
     color: white;
-    box-shadow: 0 7px 20px #1e4ab550
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15)
 }
 
 .brand strong {
     display: block;
     letter-spacing: .15em;
-    font-size: 12px
+    font-size: 12px;
+    color: #1e293b
 }
 
 .brand span {
     display: block;
-    color: #7590ac;
+    color: #64748b;
     font-size: 10px;
     margin-top: 2px
 }
@@ -82,7 +83,7 @@ button {
     display: none;
     background: none;
     border: 0;
-    color: #8ca0b4;
+    color: #64748b;
     margin-left: auto
 }
 
@@ -90,10 +91,10 @@ button {
     font-family: "DM Mono";
     font-size: 9px;
     line-height: 1.6;
-    color: #7fa4d6;
+    color: #475569;
     padding: 11px 12px;
-    border: 1px solid #203958;
-    background: #0e2136;
+    border: 1px solid #e2e8f0;
+    background: #f1f5f9;
     border-radius: 8px;
     margin: 0 4px 22px
 }
@@ -103,10 +104,10 @@ button {
     height: 6px;
     width: 6px;
     border-radius: 50%;
-    background: #56d7a2;
+    background: #10b981;
     display: inline-block;
     margin-right: 6px;
-    box-shadow: 0 0 0 3px #56d7a21e
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2)
 }
 
 .nav-group {
@@ -118,7 +119,7 @@ button {
     font-size: 9px;
     text-transform: uppercase;
     letter-spacing: .12em;
-    color: #526b85;
+    color: #64748b;
     padding: 0 12px 8px
 }
 
@@ -128,7 +129,7 @@ button {
     align-items: center;
     gap: 10px;
     text-decoration: none;
-    color: #8ca0b4;
+    color: #475569;
     font-size: 12px;
     padding: 10px 12px;
     border-radius: 7px;
@@ -137,15 +138,15 @@ button {
 
 .nav-group a:hover,
 .sidebar-bottom>a:hover {
-    color: #e9f0f8;
-    background: #132941
+    color: #1e293b;
+    background: #f1f5f9
 }
 
 .nav-group a.active,
 .sidebar-bottom>a.active {
-    color: #dbe9ff;
-    background: #193b6d;
-    box-shadow: inset 3px 0 #60a0ff
+    color: #1e40af;
+    background: #eff6ff;
+    box-shadow: inset 3px 0 #3b82f6
 }
 
 .sidebar-bottom {
@@ -155,16 +156,16 @@ button {
 .service-status {
     font-family: "DM Mono";
     font-size: 9px;
-    color: #76a58e;
-    border: 1px solid #1d4b3e;
+    color: #059669;
+    border: 1px solid #d1fae5;
     padding: 12px;
     border-radius: 8px;
     margin: 15px 4px 0;
-    background: #0d2825
+    background: #ecfdf5
 }
 
 .service-status div {
-    color: #608679;
+    color: #047857;
     margin-top: 6px;
     line-height: 1.5
 }
@@ -172,37 +173,37 @@ button {
 .main {
     min-width: 0;
     flex: 1;
-    background: #091522
+    background: #ffffff
 }
 
 .topbar {
     height: 66px;
-    border-bottom: 1px solid #182a3e;
+    border-bottom: 1px solid #e5e7eb;
     display: flex;
     align-items: center;
     padding: 0 34px;
     gap: 20px;
-    background: #0a1725e8
+    background: #ffffff
 }
 
 .menu-button {
     display: none;
     background: none;
     border: 0;
-    color: #9bb0c3
+    color: #64748b
 }
 
 .breadcrumbs {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #627990;
+    color: #64748b;
     font-size: 11px;
     text-transform: capitalize
 }
 
 .breadcrumbs strong {
-    color: #bcd0e4;
+    color: #1e293b;
     font-weight: 600
 }
 
@@ -216,15 +217,15 @@ button {
 .data-indicator {
     font-family: "DM Mono";
     font-size: 10px;
-    color: #80a092;
+    color: #059669;
     text-transform: uppercase
 }
 
 .avatar {
     border: 0;
     border-radius: 50%;
-    background: #29415b;
-    color: #a9c9ef;
+    background: #e2e8f0;
+    color: #475569;
     height: 30px;
     width: 30px;
     font-size: 10px
@@ -247,7 +248,7 @@ button {
 .eyebrow {
     font-family: "DM Mono";
     font-size: 10px;
-    color: #6b9bd6;
+    color: #6366f1;
     text-transform: uppercase;
     letter-spacing: .1em;
     margin-bottom: 9px
@@ -257,11 +258,11 @@ button {
     font-size: 29px;
     letter-spacing: -.04em;
     margin: 0 0 7px;
-    color: #eff6fc
+    color: #1e293b
 }
 
 .page-heading p {
-    color: #8296aa;
+    color: #64748b;
     margin: 0;
     max-width: 650px;
     font-size: 13px;
@@ -269,30 +270,31 @@ button {
 }
 
 .button {
-    border: 1px solid #294765;
+    border: 1px solid #d1d5db;
     border-radius: 7px;
     padding: 10px 14px;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    color: #c0d5e9;
-    background: #102235;
+    color: #374151;
+    background: #ffffff;
     font-size: 11px;
     font-weight: 700
 }
 
 .button:hover {
-    background: #17304b
+    background: #f9fafb;
+    border-color: #9ca3af
 }
 
 .button.primary {
-    background: #2d67ca;
-    border-color: #3977df;
+    background: #2563eb;
+    border-color: #3b82f6;
     color: #fff
 }
 
 .button.primary:hover {
-    background: #3c7ce0
+    background: #1d4ed8
 }
 
 .button.wide {
@@ -310,8 +312,8 @@ button {
     display: flex;
     align-items: center;
     gap: 12px;
-    border: 1px solid #4f4226;
-    background: #1e1b13;
+    border: 1px solid #fbbf24;
+    background: #fffbeb;
     border-radius: 8px;
     padding: 13px 15px;
     margin-bottom: 24px
@@ -321,8 +323,8 @@ button {
     display: grid;
     place-items: center;
     border-radius: 6px;
-    background: #8f6d25;
-    color: #fae5a4;
+    background: #f59e0b;
+    color: #ffffff;
     font: 500 11px "DM Mono";
     height: 27px;
     width: 27px
@@ -330,7 +332,7 @@ button {
 
 .notice strong {
     display: block;
-    color: #ecd99a;
+    color: #92400e;
     font: 500 10px "DM Mono";
     letter-spacing: .1em
 }
@@ -338,7 +340,7 @@ button {
 .notice span {
     display: block;
     font-size: 11px;
-    color: #ad9d78;
+    color: #b45309;
     margin-top: 2px
 }
 
@@ -346,7 +348,7 @@ button {
     margin-left: auto !important;
     font-family: "DM Mono";
     font-size: 9px !important;
-    color: #8c7e5d !important
+    color: #92400e !important
 }
 
 .metric-grid {
@@ -357,8 +359,8 @@ button {
 }
 
 .metric-card {
-    background: #0e1d2d;
-    border: 1px solid #1a3046;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
     border-radius: 8px;
     padding: 17px 16px;
     min-height: 110px
@@ -366,7 +368,7 @@ button {
 
 .metric-label {
     font-size: 10px;
-    color: #8196aa;
+    color: #64748b;
     margin-bottom: 13px
 }
 
@@ -374,23 +376,23 @@ button {
     font-size: 22px;
     letter-spacing: -.04em;
     font-weight: 700;
-    color: #e9f2fb;
+    color: #1e293b;
     white-space: nowrap
 }
 
 .metric-value.good,
 .good-text {
-    color: #55d6a2
+    color: #10b981
 }
 
 .metric-value.warn {
-    color: #e8bb68
+    color: #f59e0b
 }
 
 .metric-helper {
     font-family: "DM Mono";
     font-size: 9px;
-    color: #587089;
+    color: #94a3b8;
     margin-top: 9px;
     white-space: nowrap;
     overflow: hidden;
@@ -405,8 +407,8 @@ button {
 }
 
 .panel {
-    background: #0e1d2d;
-    border: 1px solid #1a3046;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
     border-radius: 8px;
     padding: 20px;
     margin-bottom: 16px
@@ -423,7 +425,7 @@ button {
 .panel-heading h2,
 .panel h2 {
     font-size: 13px;
-    color: #d9e6f2;
+    color: #1e293b;
     margin: 0 0 5px;
     font-weight: 700
 }
@@ -431,7 +433,7 @@ button {
 .panel-heading span,
 .panel>p {
     font-size: 10px;
-    color: #71879b;
+    color: #64748b;
     line-height: 1.5
 }
 
@@ -439,7 +441,7 @@ button {
     display: flex;
     gap: 3px;
     align-items: center;
-    color: #74a9ed;
+    color: #2563eb;
     font-size: 10px;
     text-decoration: none
 }
@@ -448,27 +450,27 @@ button {
     font: 500 9px "DM Mono";
     padding: 5px 7px;
     border-radius: 4px;
-    border: 1px solid #33485d;
-    color: #8da3b6;
+    border: 1px solid #d1d5db;
+    color: #6b7280;
     white-space: nowrap
 }
 
 .status-pill.good {
-    color: #5bd9a7;
-    border-color: #245b4b;
-    background: #102e2b
+    color: #059669;
+    border-color: #a7f3d0;
+    background: #ecfdf5
 }
 
 .status-pill.warn {
-    color: #ebbf70;
-    border-color: #67522e;
-    background: #302615
+    color: #d97706;
+    border-color: #fde68a;
+    background: #fffbeb
 }
 
 .status-pill.bad {
-    color: #f3847f;
-    border-color: #693833;
-    background: #331b1b
+    color: #dc2626;
+    border-color: #fecaca;
+    background: #fef2f2
 }
 
 .risk-chart {
@@ -481,7 +483,7 @@ button {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    color: #607990;
+    color: #64748b;
     font: 9px "DM Mono";
     padding-bottom: 28px
 }
@@ -490,9 +492,9 @@ button {
     flex: 1;
     position: relative;
     margin-left: 11px;
-    border-left: 1px solid #273b4f;
-    border-bottom: 1px solid #273b4f;
-    background: repeating-linear-gradient(to bottom, transparent, transparent 61px, #1b2c3e 62px)
+    border-left: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    background: repeating-linear-gradient(to bottom, transparent, transparent 61px, #f1f5f9 62px)
 }
 
 .chart-area svg {
@@ -503,7 +505,7 @@ button {
 .chart-label {
     position: absolute;
     bottom: -21px;
-    color: #536c85;
+    color: #94a3b8;
     font: 8px "DM Mono"
 }
 
@@ -522,12 +524,12 @@ button {
     gap: 11px;
     margin: 15px 0;
     font: 9px "DM Mono";
-    color: #7d94a8
+    color: #64748b
 }
 
 .distribution-row div {
     height: 6px;
-    background: #1c3248;
+    background: #e2e8f0;
     border-radius: 4px;
     overflow: hidden
 }
@@ -535,14 +537,14 @@ button {
 .distribution-row i {
     display: block;
     height: 100%;
-    background: #538ad7;
+    background: #3b82f6;
     border-radius: 4px
 }
 
 .distribution-row b {
     font-weight: 400;
     text-align: right;
-    color: #c0d3e6
+    color: #1e293b
 }
 
 .table-wrap {
@@ -558,30 +560,30 @@ table {
 
 th {
     text-align: left;
-    color: #637b92;
+    color: #64748b;
     font: 9px "DM Mono";
     text-transform: uppercase;
     letter-spacing: .06em;
     padding: 0 12px 11px;
-    border-bottom: 1px solid #20374c
+    border-bottom: 1px solid #e5e7eb
 }
 
 td {
     padding: 13px 12px;
-    border-bottom: 1px solid #1a3044;
-    color: #a9bbcb;
+    border-bottom: 1px solid #f1f5f9;
+    color: #475569;
     vertical-align: middle
 }
 
 td strong {
     display: block;
-    color: #d9e6f1;
+    color: #1e293b;
     font-weight: 600
 }
 
 td small {
     display: block;
-    color: #60788f;
+    color: #94a3b8;
     font-size: 9px;
     margin-top: 3px
 }
@@ -590,7 +592,7 @@ td small {
     display: inline-block;
     width: 50px;
     height: 5px;
-    background: #20364a;
+    background: #e2e8f0;
     border-radius: 5px;
     vertical-align: middle;
     margin-right: 7px
@@ -599,7 +601,7 @@ td small {
 .table-progress i {
     display: block;
     height: 100%;
-    background: #56d6a1;
+    background: #10b981;
     border-radius: 5px
 }
 
@@ -610,14 +612,14 @@ td small {
     justify-content: center;
     flex-direction: column;
     gap: 7px;
-    color: #637b91;
+    color: #64748b;
     text-align: center;
     padding: 24px
 }
 
 .empty-state strong {
     font-size: 12px;
-    color: #a6bbcc
+    color: #475569
 }
 
 .empty-state span {
@@ -627,7 +629,7 @@ td small {
 }
 
 .empty-state svg {
-    color: #56718a
+    color: #94a3b8
 }
 
 .prediction-layout {
@@ -639,7 +641,7 @@ td small {
 .form-panel label,
 .settings-grid label {
     display: block;
-    color: #93a8ba;
+    color: #475569;
     font-size: 10px;
     margin-bottom: 16px
 }
@@ -649,9 +651,9 @@ td small {
     display: block;
     width: 100%;
     margin-top: 7px;
-    background: #091827;
-    color: #dceaf5;
-    border: 1px solid #294058;
+    background: #ffffff;
+    color: #1e293b;
+    border: 1px solid #d1d5db;
     border-radius: 6px;
     padding: 11px;
     font-size: 12px;
@@ -660,7 +662,7 @@ td small {
 
 .form-panel select:focus,
 .settings-grid input:focus {
-    border-color: #5187d0
+    border-color: #3b82f6
 }
 
 .result-panel {
@@ -673,7 +675,7 @@ td small {
 
 .result-kicker {
     font: 10px "DM Mono";
-    color: #7790a4;
+    color: #64748b;
     text-transform: uppercase
 }
 
@@ -686,11 +688,11 @@ td small {
 }
 
 .dot.good {
-    background: #55d6a2
+    background: #10b981
 }
 
 .dot.warn {
-    background: #ecbd65
+    background: #f59e0b
 }
 
 .result-decision {
@@ -702,13 +704,13 @@ td small {
 
 .result-context {
     font-size: 11px;
-    color: #71869a
+    color: #64748b
 }
 
 .result-price {
     font-size: 31px;
     font-weight: 700;
-    color: #eff7ff;
+    color: #1e293b;
     margin: 32px 0 25px
 }
 
@@ -716,14 +718,14 @@ td small {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1px;
-    background: #23405a;
-    border: 1px solid #23405a;
+    background: #e5e7eb;
+    border: 1px solid #e5e7eb;
     border-radius: 7px;
     overflow: hidden
 }
 
 .result-stats div {
-    background: #112437;
+    background: #ffffff;
     padding: 15px
 }
 
@@ -731,7 +733,7 @@ td small {
 .signal-list span,
 .failure-card span {
     display: block;
-    color: #7890a4;
+    color: #64748b;
     font-size: 10px;
     margin-bottom: 5px
 }
@@ -741,7 +743,7 @@ td small {
 }
 
 .bad-text {
-    color: #e77e7c
+    color: #dc2626
 }
 
 .signal-list {
@@ -752,31 +754,31 @@ td small {
 }
 
 .signal-list div {
-    background: #112437;
-    border: 1px solid #1f394f;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     border-radius: 6px;
     padding: 11px
 }
 
 .signal-list b {
     font: 500 12px "DM Mono";
-    color: #c8d9e8
+    color: #1e293b
 }
 
 .evidence {
     margin-top: 18px;
-    background: #0b1b2b;
-    border-left: 2px solid #d7a94e;
+    background: #fffbeb;
+    border-left: 2px solid #f59e0b;
     border-radius: 3px;
     padding: 14px;
     font-size: 11px;
-    color: #a1b4c4;
+    color: #475569;
     line-height: 1.5
 }
 
 .evidence strong {
     display: block;
-    color: #e3c980;
+    color: #92400e;
     margin-bottom: 7px;
     font-size: 11px
 }
@@ -788,9 +790,9 @@ td small {
 
 .inline-error,
 .global-error {
-    color: #ed918b;
-    background: #331b1c;
-    border: 1px solid #66383a;
+    color: #dc2626;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
     border-radius: 6px;
     font-size: 10px;
     padding: 10px;
@@ -808,7 +810,7 @@ td small {
     margin-left: auto;
     background: none;
     border: 0;
-    color: #f4c1ba;
+    color: #b91c1c;
     text-decoration: underline;
     font-size: 10px
 }
@@ -823,14 +825,14 @@ td small {
     grid-template-columns: 1.7fr 1fr 1fr;
     align-items: center;
     gap: 15px;
-    border: 1px solid #1d354b;
+    border: 1px solid #e5e7eb;
     border-radius: 6px;
     padding: 14px
 }
 
 .failure-card strong {
     display: inline-block;
-    color: #ceddeb;
+    color: #1e293b;
     font-size: 11px;
     margin-left: 10px
 }
@@ -841,7 +843,7 @@ td small {
 
 .failure-card b {
     font: 500 13px "DM Mono";
-    color: #d8e7f4
+    color: #475569
 }
 
 .module-panel {
@@ -857,13 +859,13 @@ td small {
     border-radius: 8px;
     display: grid;
     place-items: center;
-    background: #302615;
-    color: #d9ad55;
+    background: #fef3c7;
+    color: #d97706;
     flex: 0 0 40px
 }
 
 .module-panel p {
-    color: #8297a9;
+    color: #64748b;
     font-size: 12px;
     line-height: 1.7;
     margin: 8px 0 0;
@@ -884,9 +886,9 @@ td small {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #1d3449;
+    border-bottom: 1px solid #f1f5f9;
     padding: 15px 0;
-    color: #a8bbca;
+    color: #475569;
     font-size: 11px
 }
 
@@ -900,14 +902,14 @@ td small {
 
 footer {
     text-align: center;
-    color: #4f687e;
+    color: #94a3b8;
     font: 9px "DM Mono";
     padding: 0 20px 24px
 }
 
 footer span {
     margin: 0 6px;
-    color: #2f465c
+    color: #cbd5e1
 }
 
 @media (max-width:1100px) {
@@ -933,7 +935,7 @@ footer span {
         position: fixed;
         left: -270px;
         transition: left .2s;
-        box-shadow: 15px 0 40px #0008
+        box-shadow: 15px 0 40px rgba(0, 0, 0, 0.1)
     }
 
     .sidebar.open {
@@ -1026,7 +1028,7 @@ footer span {
 }
 
 .decision-summary {
-    color: #d5e3ef !important;
+    color: #1e293b !important;
     font-size: 13px !important;
     line-height: 1.6 !important;
     margin: 10px 0 8px !important
@@ -1040,26 +1042,26 @@ footer span {
 }
 
 .evidence-grid div {
-    background: #112437;
-    border: 1px solid #1f394f;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     border-radius: 6px;
     padding: 10px
 }
 
 .evidence-grid span {
     display: block;
-    color: #7890a4;
+    color: #64748b;
     font-size: 10px;
     margin-bottom: 5px
 }
 
 .evidence-grid b {
     font: 500 11px "DM Mono";
-    color: #c8d9e8
+    color: #1e293b
 }
 
 .evidence-grid b.unavailable {
-    color: #8b9bab;
+    color: #94a3b8;
     font-style: italic;
     font-family: inherit
 }
@@ -1072,15 +1074,15 @@ footer span {
 
 .filter-label {
     font: 10px Manrope;
-    color: #93a8ba
+    color: #475569
 }
 
 .filter-label select {
     display: block;
     margin-top: 6px;
-    background: #091827;
-    color: #dceaf5;
-    border: 1px solid #294058;
+    background: #ffffff;
+    color: #1e293b;
+    border: 1px solid #d1d5db;
     border-radius: 6px;
     padding: 8px;
     font-size: 11px
