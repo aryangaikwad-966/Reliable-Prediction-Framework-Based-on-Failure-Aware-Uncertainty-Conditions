@@ -381,9 +381,7 @@ psql "$DATABASE_URL" -c 'select 1;'
 
 ## Further documentation
 
-- [UI-to-backend integration matrix](UI_BACKEND_INTEGRATION_MATRIX.md)
-- [UI implementation report](UI_IMPLEMENTATION_REPORT.md)
-- [End-to-end verification report](END_TO_END_VERIFICATION_REPORT.md)
-- [Demo readiness report](DEMO_READINESS_REPORT.md)
-- [Evaluation audit](EVALUATION_AUDIT_REPORT.md)
-- [Final reproducibility report](FINAL_REPRODUCIBILITY_REPORT.md)
+- [Climate implementation report](CLIMATE_IMPLEMENTATION_REPORT.md)
+- [Dataset enrichment report](apmc_failure_aware_output/DATASET_ENRICHMENT_REPORT.md)
+- [Dataset validation report](apmc_failure_aware_output/DATA_VALIDATION_REPORT.md)
+- [Feature and data dictionary](apmc_failure_aware_output/DATA_DICTIONARY.md)
